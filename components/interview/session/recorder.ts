@@ -53,7 +53,7 @@ export class InterviewRecorder {
     if (!res.ok) throw new Error("Could not start recording");
     this.part = (await res.json()).part_index;
 
-    this.recorder = new MediaRecorder(combined, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 1_000_000, audioBitsPerSecond: 96_000 });
+    this.recorder = new MediaRecorder(combined, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 350_000, audioBitsPerSecond: 64_000 });
     this.recorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
         this.queue.push({ index: this.index++, blob: e.data, attempts: 0 });

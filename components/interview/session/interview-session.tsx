@@ -288,7 +288,7 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
     setError(null);
     try {
       const media = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24 } },
+        video: { width: { ideal: 854 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       camera.current = media;
