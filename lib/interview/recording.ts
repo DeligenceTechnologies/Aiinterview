@@ -1,7 +1,10 @@
 import "server-only";
 // Recording is uploaded as numbered chunks per "part" (a part = one
 // MediaRecorder session; a browser refresh starts a new part). Chunks are
-// idempotent by index and assembled into one private file per part.
+// idempotent by index and are never joined into one big object: they're
+// indexed in recording_chunks and streamed back in order (with HTTP Range
+// support) by /api/recordings/[id]/stream. This keeps every stored object
+// small (storage providers cap object size) and makes finishing instant.
 
 import { withOrg } from "@/lib/database/db";
 import { ApiError } from "@/lib/api";
@@ -11,6 +14,8 @@ import { resolveToken } from "./controller";
 
 export const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
 const ALLOWED_MIME = /^video\/webm|^video\/mp4|^audio\/webm/;
+/** Max bytes returned per range response; browsers request the rest as needed. */
+const MAX_RANGE_BYTES = 8 * 1024 * 1024;
 
 export async function startRecordingPart(token: string, input: { offset_ms: number; mime_type: string }) {
   const ctx = await resolveToken(token);
@@ -30,82 +35,170 @@ export async function uploadRecordingChunk(token: string, part: number, index: n
   if (bytes.byteLength === 0) return { stored: false };
   if (bytes.byteLength > MAX_CHUNK_BYTES) throw new ApiError(413, "Chunk too large.");
   const ctx = await resolveToken(token);
-  const [rec] = await withOrg(ctx.orgId, (tx) => tx<{ status: string }[]>`select status from recordings where interview_id = ${ctx.id} and part_index = ${part}`);
+  const [rec] = await withOrg(ctx.orgId, (tx) => tx<{ id: string; status: string }[]>`
+    select id, status from recordings where interview_id = ${ctx.id} and part_index = ${part}`);
   if (!rec) throw new ApiError(404, "Recording part not found.");
-  if (rec.status !== "uploading") return { stored: false };
+  if (rec.status === "deleted") return { stored: false };
   const path = paths.recordingChunk(ctx.orgId, ctx.id, part, index);
-  const existed = await storage().exists(path);
   await storage().put(path, bytes, "application/octet-stream");
-  if (!existed) {
-    await withOrg(ctx.orgId, (tx) => tx`update recordings set chunks_received = chunks_received + 1, file_size = file_size + ${bytes.byteLength}
-      where interview_id = ${ctx.id} and part_index = ${part}`);
-  }
+  await withOrg(ctx.orgId, async (tx) => {
+    await tx`insert into recording_chunks (organization_id, recording_id, chunk_index, storage_path, size)
+      values (${ctx.orgId}, ${rec.id}, ${index}, ${path}, ${bytes.byteLength})
+      on conflict (recording_id, chunk_index) do update set size = excluded.size, storage_path = excluded.storage_path`;
+    await refreshTotals(tx, rec.id);
+  });
   return { stored: true };
+}
+
+type Tx = Parameters<Parameters<typeof withOrg>[1]>[0];
+
+async function refreshTotals(tx: Tx, recordingId: string) {
+  await tx`update recordings r set chunks_received = c.n, file_size = c.bytes
+    from (select count(*)::int as n, coalesce(sum(size), 0)::bigint as bytes from recording_chunks where recording_id = ${recordingId}) c
+    where r.id = ${recordingId}`;
 }
 
 export async function finalizeRecordingPart(token: string, part: number, input: { duration_ms: number | null; total_chunks: number }) {
   const ctx = await resolveToken(token);
-  return assemblePart(ctx.orgId, ctx.id, part, input);
+  return sealPart(ctx.orgId, ctx.id, part, input);
 }
 
-/** Concatenate chunks into the final object. Safe to call more than once. */
-export async function assemblePart(orgId: string, interviewId: string, part: number, input: { duration_ms: number | null; total_chunks: number | null }) {
-  const [rec] = await withOrg(orgId, (tx) => tx<{ status: string; storage_path: string; mime_type: string }[]>`
-    select status, storage_path, mime_type from recordings where interview_id = ${interviewId} and part_index = ${part}`);
+/**
+ * Mark a part as stored once all its chunks are indexed. Also indexes chunks
+ * found in storage but missing from the table (uploads made before chunk
+ * indexing existed, or a lost index write). Safe to call repeatedly.
+ */
+export async function sealPart(orgId: string, interviewId: string, part: number, input: { duration_ms: number | null; total_chunks: number | null }) {
+  const [rec] = await withOrg(orgId, (tx) => tx<{ id: string; status: string; storage_path: string }[]>`
+    select id, status, storage_path from recordings where interview_id = ${interviewId} and part_index = ${part}`);
   if (!rec) throw new ApiError(404, "Recording part not found.");
-  if (rec.status === "stored") return { status: "stored" as const };
+  if (rec.status === "deleted") return { status: "deleted" as const };
 
-  const prefix = paths.recordingChunkPrefix(orgId, interviewId, part);
-  const files = await storage().list(prefix);
-  if (input.total_chunks != null && files.length < input.total_chunks) {
-    // Some chunks are still in flight or failed: do not claim the recording is stored.
-    return { status: "incomplete" as const, missing: input.total_chunks - files.length };
+  const files = await storage().listDetailed(paths.recordingChunkPrefix(orgId, interviewId, part));
+  const count = await withOrg(orgId, async (tx) => {
+    for (const f of files) {
+      const index = Number(f.path.match(/chunk-(\d+)\.bin$/)?.[1]);
+      if (!Number.isInteger(index) || f.size <= 0) continue;
+      await tx`insert into recording_chunks (organization_id, recording_id, chunk_index, storage_path, size)
+        values (${orgId}, ${rec.id}, ${index}, ${f.path}, ${f.size})
+        on conflict (recording_id, chunk_index) do nothing`;
+    }
+    await refreshTotals(tx, rec.id);
+    const [{ n }] = await tx<{ n: number }[]>`select count(*)::int as n from recording_chunks where recording_id = ${rec.id}`;
+    return n;
+  });
+
+  if (input.total_chunks != null && count < input.total_chunks) {
+    // Some chunks are still in flight: never claim the recording is stored.
+    return { status: "incomplete" as const, missing: input.total_chunks - count };
   }
-  if (!files.length) {
-    await withOrg(orgId, (tx) => tx`update recordings set status = 'failed' where interview_id = ${interviewId} and part_index = ${part}`);
-    return { status: "failed" as const };
+  if (count === 0) {
+    // Recordings assembled by an earlier version are a single object.
+    const legacy = await storage().exists(rec.storage_path);
+    await withOrg(orgId, (tx) => tx`update recordings set status = ${legacy ? "stored" : "failed"} where id = ${rec.id}`);
+    return { status: legacy ? ("stored" as const) : ("failed" as const) };
   }
-  const buffers: Uint8Array[] = [];
-  for (const f of files) buffers.push(await storage().get(f));
-  const total = buffers.reduce((a, b) => a + b.byteLength, 0);
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const b of buffers) {
-    merged.set(b, offset);
-    offset += b.byteLength;
-  }
-  await storage().put(rec.storage_path, merged, rec.mime_type);
-  await withOrg(orgId, (tx) => tx`update recordings set status = 'stored', file_size = ${total},
+  await withOrg(orgId, (tx) => tx`update recordings set status = 'stored',
     duration_seconds = coalesce(${input.duration_ms != null ? Math.round(input.duration_ms / 1000) : null}, duration_seconds)
-    where interview_id = ${interviewId} and part_index = ${part}`);
-  await storage().deletePrefix(prefix);
-  log.info("recording.stored", { interviewId, part, bytes: total, chunks: files.length });
+    where id = ${rec.id}`);
+  log.info("recording.stored", { interviewId, part, chunks: count });
   return { status: "stored" as const };
 }
 
-/** Called after completion: assemble any parts the browser didn't finalize (e.g. tab closed). */
+/** Called after completion: seal any parts the browser didn't finalize (e.g. tab closed). */
 export async function finalizeAllParts(orgId: string, interviewId: string) {
   const parts = await withOrg(orgId, (tx) => tx<{ part_index: number }[]>`
-    select part_index from recordings where interview_id = ${interviewId} and status = 'uploading'`);
+    select part_index from recordings where interview_id = ${interviewId} and status in ('uploading', 'failed')`);
   for (const p of parts) {
     try {
-      await assemblePart(orgId, interviewId, p.part_index, { duration_ms: null, total_chunks: null });
+      await sealPart(orgId, interviewId, p.part_index, { duration_ms: null, total_chunks: null });
     } catch (err) {
       log.warn("recording.finalize_failed", { interviewId, part: p.part_index, err });
     }
   }
 }
 
-/** Signed, expiring URLs for an authorized recruiter. */
+/** Playback URLs for an authorized recruiter. */
 export async function recordingUrls(orgId: string, interviewId: string) {
-  const parts = await withOrg(orgId, (tx) => tx<{ part_index: number; offset_ms: number; storage_path: string; mime_type: string; duration_seconds: number | null; status: string }[]>`
-    select part_index, offset_ms, storage_path, mime_type, duration_seconds, status from recordings
-    where interview_id = ${interviewId} and organization_id = ${orgId} and status = 'stored' order by part_index`);
+  const parts = await withOrg(orgId, (tx) => tx<{ id: string; part_index: number; offset_ms: number; storage_path: string; mime_type: string; duration_seconds: number | null; chunked: boolean }[]>`
+    select r.id, r.part_index, r.offset_ms, r.storage_path, r.mime_type, r.duration_seconds,
+      exists (select 1 from recording_chunks c where c.recording_id = r.id) as chunked
+    from recordings r
+    where r.interview_id = ${interviewId} and r.organization_id = ${orgId} and r.status = 'stored' order by r.part_index`);
   return Promise.all(parts.map(async (p) => ({
     part_index: p.part_index,
     offset_ms: p.offset_ms,
     duration_seconds: p.duration_seconds,
     mime_type: p.mime_type,
-    url: await storage().signedUrl(p.storage_path, 60 * 60, p.mime_type),
+    url: p.chunked ? `/api/recordings/${p.id}/stream` : await storage().signedUrl(p.storage_path, 60 * 60, p.mime_type),
   })));
+}
+
+/**
+ * Serve a chunked recording as one continuous file, honouring HTTP Range so
+ * the video player can seek. Each response is capped at MAX_RANGE_BYTES.
+ */
+export async function streamRecording(orgId: string, recordingId: string, rangeHeader: string | null): Promise<Response> {
+  const [rec] = await withOrg(orgId, (tx) => tx<{ mime_type: string; status: string }[]>`
+    select mime_type, status from recordings where id = ${recordingId} and organization_id = ${orgId}`);
+  if (!rec || rec.status === "deleted") throw new ApiError(404, "Recording not found");
+  const chunks = await withOrg(orgId, (tx) => tx<{ storage_path: string; size: number }[]>`
+    select storage_path, size from recording_chunks where recording_id = ${recordingId} order by chunk_index`);
+  if (!chunks.length) throw new ApiError(404, "Recording not found");
+
+  const total = chunks.reduce((a, c) => a + c.size, 0);
+  let start = 0;
+  let end = total - 1;
+  let partial = false;
+  const m = rangeHeader?.match(/^bytes=(\d*)-(\d*)$/);
+  if (m) {
+    partial = true;
+    if (m[1]) {
+      start = Number(m[1]);
+      if (m[2]) end = Math.min(Number(m[2]), total - 1);
+    } else if (m[2]) {
+      start = Math.max(0, total - Number(m[2]));
+    }
+    if (start >= total || start > end) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${total}` } });
+    }
+    end = Math.min(end, start + MAX_RANGE_BYTES - 1);
+  }
+
+  // Chunks overlapping [start, end] with their byte offsets.
+  const plan: { path: string; from: number; to: number }[] = [];
+  let offset = 0;
+  for (const c of chunks) {
+    const cStart = offset;
+    const cEnd = offset + c.size - 1;
+    offset += c.size;
+    if (cEnd < start) continue;
+    if (cStart > end) break;
+    plan.push({ path: c.storage_path, from: Math.max(0, start - cStart), to: Math.min(c.size - 1, end - cStart) });
+  }
+
+  let i = 0;
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (i >= plan.length) return controller.close();
+      const p = plan[i++];
+      try {
+        const bytes = await storage().get(p.path);
+        controller.enqueue(bytes.subarray(p.from, p.to + 1));
+      } catch (err) {
+        log.warn("recording.stream_chunk_failed", { recordingId, err });
+        controller.error(err);
+      }
+    },
+  });
+
+  const headers: Record<string, string> = {
+    "Content-Type": rec.mime_type,
+    "Accept-Ranges": "bytes",
+    "Content-Length": String(end - start + 1),
+    "Cache-Control": "private, max-age=300",
+    "X-Content-Type-Options": "nosniff",
+  };
+  if (partial) headers["Content-Range"] = `bytes ${start}-${end}/${total}`;
+  return new Response(body, { status: partial ? 206 : 200, headers });
 }

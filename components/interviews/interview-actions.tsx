@@ -12,7 +12,7 @@ import { useAction } from "@/lib/client/use-action";
 import { useRouter } from "next/navigation";
 
 const NOT_STARTED = ["created", "invited", "consent_pending", "device_check", "ready", "expired"];
-const FINISHED = ["completed", "processing", "report_ready", "failed"];
+const FINISHED = ["completing", "completed", "processing", "report_ready", "failed"];
 
 export function InterviewActions({ id, status, canWrite, canDelete, canRegenerate }: { id: string; status: string; canWrite: boolean; canDelete: boolean; canRegenerate: boolean }) {
   const { run, pending } = useAction();

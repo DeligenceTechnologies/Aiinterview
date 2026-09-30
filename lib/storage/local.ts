@@ -46,6 +46,11 @@ export class LocalStorageDriver implements StorageDriver {
     }
   }
 
+  async listDetailed(prefix: string) {
+    const files = await this.list(prefix);
+    return Promise.all(files.map(async (f) => ({ path: f, size: (await stat(this.resolve(f))).size })));
+  }
+
   async delete(p: string) {
     await rm(this.resolve(p), { force: true });
   }

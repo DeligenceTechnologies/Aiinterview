@@ -20,7 +20,7 @@ export const POST = route<{ id: string }>(async (_req, { id }) => {
   const interviewId = uuidParam(id);
   const [row] = await withOrg(auth.orgId, (tx) => tx<{ status: string }[]>`select status from interviews where id = ${interviewId} and organization_id = ${auth.orgId}`);
   if (!row) throw new ApiError(404, "Interview not found");
-  if (!["completed", "report_ready", "failed", "processing"].includes(row.status)) throw new ApiError(409, "The interview hasn't finished yet.");
+  if (!["completing", "completed", "report_ready", "failed", "processing"].includes(row.status)) throw new ApiError(409, "The interview hasn't finished yet.");
   runInBackground("interview.reprocess", () => processInterview(auth.orgId, interviewId));
   return { ok: true };
 }, { rateLimit: { key: "report-retry", limit: 20, windowMs: 60 * 60_000 } });

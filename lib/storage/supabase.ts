@@ -36,14 +36,18 @@ export class SupabaseStorageDriver implements StorageDriver {
   }
 
   async list(prefix: string) {
+    return (await this.listDetailed(prefix)).map((f) => f.path);
+  }
+
+  async listDetailed(prefix: string) {
     const res = await fetch(`${this.url}/storage/v1/object/list/${this.bucket}`, {
       method: "POST",
       headers: this.headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ prefix: prefix.replace(/\/$/, ""), limit: 10000, sortBy: { column: "name", order: "asc" } }),
     });
     if (!res.ok) return [];
-    const items = (await res.json()) as { name: string; id: string | null }[];
-    return items.filter((i) => i.id).map((i) => `${prefix.replace(/\/$/, "")}/${i.name}`);
+    const items = (await res.json()) as { name: string; id: string | null; metadata?: { size?: number } }[];
+    return items.filter((i) => i.id).map((i) => ({ path: `${prefix.replace(/\/$/, "")}/${i.name}`, size: i.metadata?.size ?? 0 }));
   }
 
   async delete(p: string) {

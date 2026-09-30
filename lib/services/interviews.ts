@@ -211,11 +211,11 @@ export async function getInterviewDetail(orgId: string, interviewId: string) {
       id: string; status: InterviewStatus; plan_status: string; plan_error: string | null; created_at: Date; invited_at: Date | null;
       started_at: Date | null; completed_at: Date | null; duration_seconds: number | null; consent_given: boolean;
       consent_timestamp: Date | null; consent_version: string | null; interview_plan: StoredPlan | null; processing_error: string | null;
-      token_expires_at: Date | null; candidate_id: string; candidate_name: string; candidate_email: string; job_id: string; job_title: string;
+      token_expires_at: Date | null; updated_at: Date; candidate_id: string; candidate_name: string; candidate_email: string; job_id: string; job_title: string;
       template_name: string | null;
     }[]>`
       select i.id, i.status, i.plan_status, i.plan_error, i.created_at, i.invited_at, i.started_at, i.completed_at, i.duration_seconds,
-        i.consent_given, i.consent_timestamp, i.consent_version, i.interview_plan, i.processing_error, i.token_expires_at,
+        i.consent_given, i.consent_timestamp, i.consent_version, i.interview_plan, i.processing_error, i.token_expires_at, i.updated_at,
         c.id as candidate_id, c.name as candidate_name, c.email as candidate_email, j.id as job_id, j.title as job_title,
         t.name as template_name
       from interviews i join candidates c on c.id = i.candidate_id join jobs j on j.id = i.job_id

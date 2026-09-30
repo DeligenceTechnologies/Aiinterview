@@ -137,7 +137,9 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
     setStage("finishing");
     setAiState("finishing");
     engine.current?.close();
-    await recorder.current?.finish().catch(() => false);
+    // Never keep the candidate waiting indefinitely; the server seals any
+    // chunks that arrived even if this final save times out.
+    await Promise.race([recorder.current?.finish().catch(() => false), new Promise((r) => setTimeout(r, 45_000))]);
     try {
       await post(`/api/public/interview/${token}/complete`, { reason }, { retries: 8 });
     } catch { /* the server also finalizes abandoned interviews */ }

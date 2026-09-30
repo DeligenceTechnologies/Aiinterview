@@ -8,6 +8,7 @@ import { evaluateSection, EVALUATOR_VERSION, type EvalSegment } from "@/lib/ai/s
 import { generateReport, REPORT_VERSION } from "@/lib/ai/report-generator";
 import { log } from "@/lib/logger";
 import { assessmentScore, type Assessment, type FinalReport, type SectionEvaluation } from "@/lib/validation/ai-schemas";
+import { runInBackground } from "@/lib/background";
 import { finalizeAllParts } from "./recording";
 
 type SegmentRow = { id: string; section_id: string | null; speaker: string; text: string; start_time_ms: number; end_time_ms: number };
@@ -151,6 +152,19 @@ export async function generateInterviewReport(orgId: string, interviewId: string
 
 /** Full pipeline. Section failures don't block the report; the report notes missing evaluations. */
 export async function processInterview(orgId: string, interviewId: string) {
+  // An interview left in "completing" (candidate closed the tab after the closing
+  // line, or the final save never finished) is closed out here so it can be reviewed.
+  await withOrg(orgId, async (tx) => {
+    const [iv] = await tx<{ status: string }[]>`select status from interviews where id = ${interviewId} for update`;
+    if (iv?.status !== "completing") return;
+    const [{ last_ms }] = await tx<{ last_ms: number | null }[]>`select max(end_time_ms) as last_ms from transcript_segments where interview_id = ${interviewId}`;
+    await tx`update interviews set status = 'completed', completed_at = coalesce(completed_at, now()),
+      duration_seconds = coalesce(duration_seconds, ${last_ms != null ? Math.round(last_ms / 1000) : null}) where id = ${interviewId}`;
+    await tx`update interview_sections set status = 'completed', completed_at = coalesce(completed_at, now()),
+      end_ms = coalesce(end_ms, ${last_ms}) where interview_id = ${interviewId} and status = 'in_progress'`;
+    await tx`update interview_sections set status = 'skipped' where interview_id = ${interviewId} and status = 'pending'`;
+    await audit(tx, { orgId, actorType: "system", action: "interview.completed", entityType: "interview", entityId: interviewId, metadata: { reason: "closed_by_processing" } });
+  });
   await withOrg(orgId, (tx) => tx`update interviews set status = 'processing', processing_error = null where id = ${interviewId} and status in ('completed','failed','report_ready')`);
   await finalizeAllParts(orgId, interviewId);
   const sections = await withOrg(orgId, (tx) => tx<{ id: string; evaluation_status: string | null }[]>`
@@ -176,4 +190,14 @@ export async function processInterview(orgId: string, interviewId: string) {
       await tx`update interviews set status = 'completed', processing_error = ${"Report generation failed. The interview data is safe — retry."} where id = ${interviewId}`;
     });
   }
+}
+
+/**
+ * A candidate who leaves after the closing line (or whose final save failed)
+ * leaves the interview in "completing". After 10 minutes, close it out and
+ * generate the report without waiting for a manual retry.
+ */
+export function recoverIfStale(orgId: string, interview: { id: string; status: string; updated_at: Date }) {
+  if (interview.status !== "completing" || Date.now() - interview.updated_at.getTime() < 10 * 60_000) return;
+  runInBackground("interview.recover", () => processInterview(orgId, interview.id));
 }

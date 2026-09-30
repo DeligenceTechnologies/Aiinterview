@@ -11,6 +11,7 @@ import { formatDate, formatDuration } from "@/lib/format";
 import { isUuid } from "@/lib/ids";
 import { getInterviewDetail } from "@/lib/services/interviews";
 import { getSettings } from "@/lib/services/workspace";
+import { recoverIfStale } from "@/lib/interview/processing";
 
 /** Shared server page for /interviews/[id] and its tab sub-routes. */
 export async function InterviewPage({ params, tab }: { params: Promise<{ interviewId: string }>; tab: ViewerTab }) {
@@ -19,6 +20,7 @@ export async function InterviewPage({ params, tab }: { params: Promise<{ intervi
   if (!isUuid(interviewId)) notFound();
   const [detail, { settings }] = await Promise.all([getInterviewDetail(auth.orgId, interviewId), getSettings(auth.orgId)]);
   if (!detail) notFound();
+  recoverIfStale(auth.orgId, detail);
   const live = ["in_progress", "completing", "processing"].includes(detail.status)
     || (detail.status === "completed" && !detail.processing_error)
     || detail.plan_status === "processing" || detail.plan_status === "pending"

@@ -91,6 +91,17 @@ test("recruiter to candidate to report", async ({ page, browser }) => {
   await expect(page.getByText("Candidate interview report")).toBeVisible();
   await expect(page.getByText(/not a hiring recommendation/)).toBeVisible();
   if (process.env.E2E_SCREENSHOTS) await page.screenshot({ path: "test-results/recruiter-report.png", fullPage: true });
+  // Recording is stored and streams with Range support (needed for seeking).
+  const interviewId = page.url().match(/interviews\/([0-9a-f-]{36})/)![1];
+  const rec = await (await page.request.get(`/api/interviews/${interviewId}/recording`)).json();
+  expect(rec.parts.length).toBeGreaterThan(0);
+  const head = await page.request.get(rec.parts[0].url, { headers: { Range: "bytes=0-3" } });
+  expect(head.status()).toBe(206);
+  expect(Buffer.from(await head.body()).toString("hex")).toBe("1a45dfa3"); // WebM/EBML magic
+  const total = Number(head.headers()["content-range"].split("/")[1]);
+  const tail = await page.request.get(rec.parts[0].url, { headers: { Range: `bytes=${total - 10}-` } });
+  expect(tail.status()).toBe(206);
+  expect((await tail.body()).length).toBe(10);
   await page.getByRole("tab", { name: "Transcript" }).click();
   await expect(page.getByText(LONG_ANSWER.slice(0, 40)).first()).toBeVisible();
   await page.getByRole("tab", { name: "Questions" }).click();
