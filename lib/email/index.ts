@@ -71,6 +71,18 @@ This link is personal to you — please don't share it.
 ${input.companyName} hiring team`,
     };
   },
+  applicationReceived(input: { candidateName: string; jobTitle: string; companyName: string }) {
+    return {
+      subject: `We received your application — ${input.jobTitle}`,
+      text: `Hi ${input.candidateName},
+
+Thank you for applying for the ${input.jobTitle} role at ${input.companyName}. We've received your application and resume.
+
+Our hiring team reviews every application. If your background is a match, we'll email you an invitation to the next step.
+
+${input.companyName} hiring team`,
+    };
+  },
   reminder(input: { candidateName: string; jobTitle: string; companyName: string; link: string }) {
     return {
       subject: `Reminder: your interview for ${input.jobTitle}`,

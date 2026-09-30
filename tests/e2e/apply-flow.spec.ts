@@ -1,0 +1,66 @@
+import { expect, test } from "@playwright/test";
+import path from "node:path";
+
+// Recruiter opens a public application link → applicant applies with a resume →
+// AI screening tags the application → recruiter invites the applicant to an interview.
+test("public application with AI screening", async ({ page, browser }) => {
+  const id = Date.now().toString(36);
+  await page.goto("/signup");
+  await page.getByLabel("Full name").fill("Pat Recruiter");
+  await page.getByLabel("Work email").fill(`apply-${id}@e2e.test`);
+  await page.getByLabel("Company / workspace name").fill(`Apply Co ${id}`);
+  await page.getByLabel("Password").fill(`pw-${id}-${Math.random().toString(36).slice(2)}`);
+  await page.getByRole("button", { name: "Create workspace" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  await page.goto("/jobs/new");
+  await page.getByLabel("Job title").fill("Backend Engineer");
+  await page.getByLabel("Job description").fill("We need a backend engineer with 4+ years of Node.js, PostgreSQL and AWS experience. Stripe payments experience is a plus.");
+  for (const s of ["Node.js", "PostgreSQL", "AWS"]) {
+    await page.getByLabel("Required skills").fill(s);
+    await page.getByLabel("Required skills").press("Enter");
+  }
+  await page.getByRole("button", { name: "Create job" }).click();
+  await expect(page.getByRole("heading", { name: /Backend Engineer/ })).toBeVisible();
+
+  await page.getByRole("switch", { name: "Accept applications" }).click();
+  const code = page.locator("code", { hasText: "/apply/" });
+  await expect(code).toBeVisible();
+  const url = (await code.textContent())!.trim();
+
+  const ctx = await browser.newContext();
+  const ap = await ctx.newPage();
+  await ap.goto(url);
+  await expect(ap.getByRole("heading", { name: "Backend Engineer" })).toBeVisible();
+  await ap.getByLabel("Full name").fill("Morgan Applicant");
+  await ap.getByLabel("Email").fill(`morgan-${id}@e2e.test`);
+  await ap.locator("#ap-resume").setInputFiles(path.join(__dirname, "fixtures/resume.txt"));
+  await ap.getByRole("checkbox").click();
+  await ap.getByRole("button", { name: "Submit application" }).click();
+  await expect(ap.getByText("Application submitted")).toBeVisible();
+
+  // Same applicant again → friendly duplicate message
+  await ap.goto(url);
+  await ap.getByLabel("Full name").fill("Morgan Applicant");
+  await ap.getByLabel("Email").fill(`morgan-${id}@e2e.test`);
+  await ap.locator("#ap-resume").setInputFiles(path.join(__dirname, "fixtures/resume.txt"));
+  await ap.getByRole("checkbox").click();
+  await ap.getByRole("button", { name: "Submit application" }).click();
+  await expect(ap.getByText(/already applied/)).toBeVisible();
+  await ctx.close();
+
+  await page.reload();
+  await expect(page.getByRole("link", { name: "Morgan Applicant" })).toBeVisible();
+  await expect(page.getByText(/requirements$/).first()).toBeVisible({ timeout: 90_000 });
+  await page.getByRole("link", { name: "Morgan Applicant" }).click();
+  await expect(page.getByRole("heading", { name: /AI screening/ })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /PostgreSQL/ }).first()).toBeVisible();
+  if (process.env.E2E_SCREENSHOTS) await page.screenshot({ path: "test-results/application.png", fullPage: true });
+
+  await page.getByRole("button", { name: "Invite to AI interview" }).click();
+  await page.getByRole("checkbox").click(); // don't email in tests
+  await page.getByRole("button", { name: "Create interview" }).click();
+  await expect(page.locator("input[readonly]").first()).toHaveValue(/\/interview\//);
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("link", { name: "View interview" })).toBeVisible();
+});

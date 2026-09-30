@@ -15,6 +15,9 @@ import { employmentTypeLabel, formatDate } from "@/lib/format";
 import { isUuid } from "@/lib/ids";
 import { listInterviews } from "@/lib/services/interviews";
 import { getJob } from "@/lib/services/jobs";
+import { applyUrl, listApplications } from "@/lib/services/applications";
+import { ApplyLinkCard } from "@/components/applications/apply-link-card";
+import { ApplicationsTable } from "@/components/applications/applications-table";
 
 export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
   const auth = await requireAuth();
@@ -22,12 +25,14 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
   if (!isUuid(jobId)) notFound();
   const job = await getJob(auth.orgId, jobId);
   if (!job) notFound();
-  const interviews = await listInterviews(auth.orgId, { jobId });
+  const [interviews, applications] = await Promise.all([listInterviews(auth.orgId, { jobId }), listApplications(auth.orgId, jobId)]);
+  const screening = applications.some((a) => a.screening_status === "pending" || a.screening_status === "processing");
+  const newCount = applications.filter((a) => a.status === "new").length;
   const req = job.parsed_requirements;
   const parsing = job.parse_status === "pending" || job.parse_status === "processing";
   return (
     <>
-      <AutoRefresh active={parsing} />
+      <AutoRefresh active={parsing || screening} />
       <PageHeader
         back={{ href: "/jobs", label: "Jobs" }}
         title={<span className="flex items-center gap-3">{job.title} <StatusBadge status={job.status} /></span>}
@@ -41,6 +46,15 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-xl border bg-card">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <h2 className="font-semibold">Applications <span className="ml-1 text-sm font-normal text-muted-foreground">{applications.length}</span>
+                {newCount > 0 && <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">{newCount} new</span>}
+              </h2>
+              <span className="text-xs text-muted-foreground">AI tags help prioritise review — they are not decisions.</span>
+            </div>
+            <ApplicationsTable rows={applications.map((a) => ({ ...a, created_at: a.created_at.toISOString() }))} />
+          </section>
           <section className="rounded-xl border bg-card">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-4">
               <h2 className="font-semibold">Interviews <span className="ml-1 text-sm font-normal text-muted-foreground">{interviews.total}</span></h2>
@@ -62,6 +76,7 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
           </section>
         </div>
         <div className="space-y-6">
+          <ApplyLinkCard jobId={job.id} enabled={job.apply_enabled} url={job.apply_slug ? applyUrl(job.apply_slug) : null} jobActive={job.status === "active"} canEdit={can(auth.role, "job:write")} />
           <section className="rounded-xl border bg-card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-semibold"><Sparkles className="size-4 text-primary" /> Parsed requirements</h2>

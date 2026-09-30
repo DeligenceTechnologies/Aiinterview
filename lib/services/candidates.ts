@@ -90,6 +90,12 @@ export async function updateCandidate(orgId: string, userId: string, candidateId
 
 /** Store a resume privately, extract text, then parse it with AI in the background. */
 export async function uploadResume(orgId: string, userId: string, candidateId: string, file: { name: string; bytes: Uint8Array }) {
+  await storeResume(orgId, userId, candidateId, file);
+  runInBackground("resume.parse", () => parseCandidateResume(orgId, candidateId));
+}
+
+/** Validate, extract text and privately store a resume. Parsing is left to the caller. */
+export async function storeResume(orgId: string, userId: string | null, candidateId: string, file: { name: string; bytes: Uint8Array }) {
   const { kind, mime } = detectResumeKind(file.name, file.bytes);
   const exists = await withOrg(orgId, (tx) => tx`select 1 from candidates where id = ${candidateId} and organization_id = ${orgId}`);
   if (!exists.length) throw new ApiError(404, "Candidate not found");
@@ -112,9 +118,8 @@ export async function uploadResume(orgId: string, userId: string, candidateId: s
       values (${docId}, ${orgId}, ${candidateId}, 'resume', ${file.name.slice(0, 200)}, ${path}, ${mime}, ${file.bytes.byteLength}, ${text})`;
     await tx`update candidates set resume_file_path = ${path}, resume_text = ${text}, parse_status = 'pending', parse_error = null
       where id = ${candidateId}`;
-    await audit(tx, { orgId, userId, action: "candidate.resume_uploaded", entityType: "candidate", entityId: candidateId, metadata: { kind, size: file.bytes.byteLength } });
+    await audit(tx, { orgId, userId, actorType: userId ? "user" : "candidate", action: "candidate.resume_uploaded", entityType: "candidate", entityId: candidateId, metadata: { kind, size: file.bytes.byteLength } });
   });
-  runInBackground("resume.parse", () => parseCandidateResume(orgId, candidateId));
 }
 
 export async function parseCandidateResume(orgId: string, candidateId: string) {

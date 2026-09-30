@@ -14,6 +14,7 @@ export const AI_CONFIG = {
   followupEngine: FAST,
   evaluator: REASONING,
   reportGenerator: REASONING,
+  applicationScreener: REASONING,
   realtime: process.env.OPENAI_MODEL_REALTIME || "gpt-realtime-2.1",
   transcription: process.env.OPENAI_MODEL_TRANSCRIBE || "gpt-live-transcribe",
   voice: process.env.OPENAI_REALTIME_VOICE || "marin",
@@ -31,4 +32,5 @@ export type AIFeature =
   | "followup_engine"
   | "section_evaluator"
   | "report_generator"
+  | "application_screener"
   | "realtime_session";

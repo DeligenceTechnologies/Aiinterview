@@ -26,6 +26,8 @@ export async function getDashboard(orgId: string) {
       order by coalesce(i.completed_at, i.started_at, i.invited_at, i.created_at) desc limit 8`;
     const attention = await tx<{ id: string; title: string; reason: string }[]>`
       select j.id, j.title, case
+        when exists (select 1 from job_applications a where a.job_id = j.id and a.status = 'new' and a.screening_status = 'completed')
+          then (select count(*) from job_applications a where a.job_id = j.id and a.status = 'new')::text || ' new application(s) to review'
         when j.interview_template_id is null then 'No interview template selected'
         when j.parse_status = 'failed' then 'Job description analysis failed'
         when not exists (select 1 from interviews i where i.job_id = j.id) then 'No candidates invited yet'

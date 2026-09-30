@@ -45,6 +45,8 @@ export type JobRow = {
   parse_status: "pending" | "processing" | "completed" | "failed" | null;
   parse_error: string | null;
   interview_template_id: string | null;
+  apply_enabled: boolean;
+  apply_slug: string | null;
   created_at: Date;
   updated_at: Date;
 };

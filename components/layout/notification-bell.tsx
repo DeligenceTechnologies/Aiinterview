@@ -13,6 +13,7 @@ type N = { id: string; type: string; payload: Record<string, string>; read_at: s
 const label = (n: N) =>
   n.type === "report.ready" ? `Report ready — ${n.payload.candidate} (${n.payload.job})`
   : n.type === "interview.completed" ? `${n.payload.candidate} completed the ${n.payload.job} interview`
+  : n.type === "application.received" ? `New application — ${n.payload.candidate} for ${n.payload.job}`
   : n.type;
 
 export function NotificationBell() {
@@ -35,7 +36,7 @@ export function NotificationBell() {
         <div className="max-h-80 overflow-y-auto">
           {items.length === 0 && <p className="px-3 py-6 text-center text-sm text-muted-foreground">You&apos;re all caught up.</p>}
           {items.map((n) => (
-            <Link key={n.id} href={n.payload.interview_id ? `/interviews/${n.payload.interview_id}` : "/dashboard"} className="block border-b px-3 py-2.5 text-sm last:border-0 hover:bg-muted">
+            <Link key={n.id} href={n.payload.application_id ? `/jobs/${n.payload.job_id}/applications/${n.payload.application_id}` : n.payload.interview_id ? `/interviews/${n.payload.interview_id}` : "/dashboard"} className="block border-b px-3 py-2.5 text-sm last:border-0 hover:bg-muted">
               <p className={n.read_at ? "text-muted-foreground" : "font-medium"}>{label(n)}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{timeAgo(n.created_at)}</p>
             </Link>

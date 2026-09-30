@@ -155,3 +155,32 @@ export const assessmentLabel: Record<Assessment, string> = {
   strong: "Strong",
   very_strong: "Very strong",
 };
+
+export const MatchLevelEnum = z.enum(["strong_match", "good_match", "partial_match", "low_match", "insufficient_information"]);
+export type MatchLevel = z.infer<typeof MatchLevelEnum>;
+
+export const ApplicationScreeningSchema = z.object({
+  match_level: MatchLevelEnum,
+  summary: z.string(),
+  requirements: z.array(
+    z.object({
+      requirement: z.string(),
+      importance: z.enum(["required", "preferred"]),
+      status: z.enum(["met", "partially_met", "not_evident"]),
+      evidence: z.string().nullable(),
+    }),
+  ),
+  strengths: z.array(z.string()),
+  gaps: z.array(z.string()),
+  experience_evidence: z.string().nullable(),
+  suggested_interview_focus: z.array(z.string()),
+});
+export type ApplicationScreening = z.infer<typeof ApplicationScreeningSchema>;
+
+export const matchLevelLabel: Record<MatchLevel, string> = {
+  strong_match: "Strong match",
+  good_match: "Good match",
+  partial_match: "Partial match",
+  low_match: "Low match",
+  insufficient_information: "Not enough information",
+};
