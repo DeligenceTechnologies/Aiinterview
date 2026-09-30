@@ -1,0 +1,35 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Database: Supabase Postgres (session pooler). Files: Supabase Storage (private bucket).
+services:
+  - type: web
+    name: ai-interviewer
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_STORAGE_BUCKET
+        value: interview-private
+      - key: AI_PROVIDER
+        value: auto
+      - key: EMAIL_PROVIDER
+        value: log
+      - key: APP_SECRET
+        generateValue: true
+      # Secrets — enter these in the Render dashboard when creating the service.
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: APP_URL
+        sync: false

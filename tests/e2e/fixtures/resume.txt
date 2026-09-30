@@ -1,0 +1,16 @@
+Taylor Morgan
+Senior Software Engineer
+8 years of experience building web applications.
+
+Experience
+Staff Engineer at Northwind Commerce (2021 - Present)
+- Led migration of the checkout service from a monolith to Node.js microservices on AWS
+- Designed a Stripe-based payments platform processing 2M transactions per month
+- Reduced p95 API latency by 40% through PostgreSQL query optimization
+
+Software Engineer at Contoso Labs (2016 - 2021)
+- Built React and TypeScript dashboards used by 5,000 internal users
+- Introduced CI/CD with GitHub Actions and Docker
+
+Education
+B.S. Computer Science, University of Washington

@@ -1,0 +1,42 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { AutoRefresh } from "@/components/common/auto-refresh";
+import { PageHeader } from "@/components/common/page-header";
+import { StatusBadge } from "@/components/common/status-badge";
+import { InterviewActions } from "@/components/interviews/interview-actions";
+import { InterviewViewer, type ViewerTab } from "@/components/reports/interview-viewer";
+import { can } from "@/lib/auth/permissions";
+import { requireAuth } from "@/lib/auth/session";
+import { formatDate, formatDuration } from "@/lib/format";
+import { isUuid } from "@/lib/ids";
+import { getInterviewDetail } from "@/lib/services/interviews";
+import { getSettings } from "@/lib/services/workspace";
+
+/** Shared server page for /interviews/[id] and its tab sub-routes. */
+export async function InterviewPage({ params, tab }: { params: Promise<{ interviewId: string }>; tab: ViewerTab }) {
+  const auth = await requireAuth("interview:view");
+  const { interviewId } = await params;
+  if (!isUuid(interviewId)) notFound();
+  const [detail, { settings }] = await Promise.all([getInterviewDetail(auth.orgId, interviewId), getSettings(auth.orgId)]);
+  if (!detail) notFound();
+  const live = ["in_progress", "completing", "processing"].includes(detail.status)
+    || (detail.status === "completed" && !detail.processing_error)
+    || detail.plan_status === "processing" || detail.plan_status === "pending"
+    || detail.sections.some((s) => s.evaluation_status === "processing");
+  return (
+    <>
+      <AutoRefresh active={live} intervalMs={5000} />
+      <PageHeader
+        back={{ href: "/interviews", label: "Interviews" }}
+        title={<span className="flex flex-wrap items-center gap-3">{detail.candidate_name} <StatusBadge status={detail.status} /></span>}
+        meta={<>
+          <Link href={`/jobs/${detail.job_id}`} className="hover:text-foreground">{detail.job_title}</Link>
+          <span>{detail.started_at ? formatDate(detail.started_at, true) : `Created ${formatDate(detail.created_at)}`}</span>
+          {detail.duration_seconds != null && <span>{formatDuration(detail.duration_seconds)}</span>}
+        </>}
+        actions={<InterviewActions id={detail.id} status={detail.status} canWrite={can(auth.role, "interview:write")} canDelete={can(auth.role, "data:delete")} canRegenerate={can(auth.role, "report:regenerate")} />}
+      />
+      <InterviewViewer detail={detail} initialTab={tab} showScores={settings.show_scores} canViewRecording={can(auth.role, "recording:view")} canRegenerate={can(auth.role, "report:regenerate")} />
+    </>
+  );
+}

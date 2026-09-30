@@ -1,0 +1,42 @@
+import Link from "next/link";
+import { StatusBadge } from "@/components/common/status-badge";
+import { formatDuration, timeAgo } from "@/lib/format";
+import type { InterviewListRow } from "@/lib/services/interviews";
+
+export function InterviewTable({ rows, hideJob, hideCandidate }: { rows: InterviewListRow[]; hideJob?: boolean; hideCandidate?: boolean }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="border-b bg-muted/40 text-left text-xs font-medium text-muted-foreground">
+          <tr>
+            {!hideCandidate && <th className="px-4 py-2.5 font-medium">Candidate</th>}
+            {!hideJob && <th className="px-4 py-2.5 font-medium">Job</th>}
+            <th className="px-4 py-2.5 font-medium">Status</th>
+            <th className="px-4 py-2.5 font-medium">Duration</th>
+            <th className="px-4 py-2.5 text-right font-medium">Last activity</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {rows.map((r) => (
+            <tr key={r.id} className="group relative hover:bg-muted/40">
+              {!hideCandidate && (
+                <td className="px-4 py-3">
+                  <Link href={`/interviews/${r.id}`} className="font-medium after:absolute after:inset-0 group-hover:text-primary">{r.candidate_name}</Link>
+                  <p className="text-xs text-muted-foreground">{r.candidate_email}</p>
+                </td>
+              )}
+              {!hideJob && (
+                <td className="px-4 py-3">
+                  {hideCandidate ? <Link href={`/interviews/${r.id}`} className="font-medium after:absolute after:inset-0 group-hover:text-primary">{r.job_title}</Link> : r.job_title}
+                </td>
+              )}
+              <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+              <td className="px-4 py-3 tabular text-muted-foreground">{formatDuration(r.duration_seconds)}</td>
+              <td className="px-4 py-3 text-right text-muted-foreground">{timeAgo(r.completed_at ?? r.started_at ?? r.invited_at ?? r.created_at)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
