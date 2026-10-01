@@ -26,8 +26,8 @@ export async function getDashboard(orgId: string) {
       order by coalesce(i.completed_at, i.started_at, i.invited_at, i.created_at) desc limit 8`;
     const attention = await tx<{ id: string; title: string; reason: string }[]>`
       select j.id, j.title, case
-        when exists (select 1 from job_applications a where a.job_id = j.id and a.status = 'new' and a.screening_status = 'completed')
-          then (select count(*) from job_applications a where a.job_id = j.id and a.status = 'new')::text || ' new application(s) to review'
+        when exists (select 1 from job_applications a where a.job_id = j.id and a.status = 'new' and a.interview_id is null and a.screening_status = 'completed')
+          then (select count(*) from job_applications a where a.job_id = j.id and a.status = 'new' and a.interview_id is null)::text || ' new application(s) to review'
         when j.interview_template_id is null then 'No interview template selected'
         when j.parse_status = 'failed' then 'Job description analysis failed'
         when not exists (select 1 from interviews i where i.job_id = j.id) then 'No candidates invited yet'
@@ -115,16 +115,34 @@ export async function getUsage(orgId: string) {
   });
 }
 
+// Notifications are shared per organization (or targeted at one user); read and
+// cleared state is tracked per person in notification_states.
+
 export async function listNotifications(orgId: string, userId: string) {
   return withOrg(orgId, (tx) => tx<{ id: string; type: string; payload: Record<string, string>; read_at: Date | null; created_at: Date }[]>`
-    select id, type, payload, read_at, created_at from notifications
-    where organization_id = ${orgId} and (user_id is null or user_id = ${userId})
-    order by created_at desc limit 20`);
+    select n.id, n.type, n.payload, s.read_at, n.created_at
+    from notifications n
+    left join notification_states s on s.notification_id = n.id and s.user_id = ${userId}
+    where n.organization_id = ${orgId} and (n.user_id is null or n.user_id = ${userId}) and s.dismissed_at is null
+    order by n.created_at desc limit 20`);
 }
 
 export async function markNotificationsRead(orgId: string, userId: string) {
-  await withOrg(orgId, (tx) => tx`update notifications set read_at = now()
-    where organization_id = ${orgId} and (user_id is null or user_id = ${userId}) and read_at is null`);
+  await withOrg(orgId, (tx) => tx`
+    insert into notification_states (notification_id, user_id, organization_id, read_at)
+    select n.id, ${userId}, ${orgId}, now() from notifications n
+    where n.organization_id = ${orgId} and (n.user_id is null or n.user_id = ${userId})
+    on conflict (notification_id, user_id) do update set read_at = coalesce(notification_states.read_at, excluded.read_at)`);
+}
+
+/** Clear one notification (or all, when id is null) for this person only. */
+export async function dismissNotifications(orgId: string, userId: string, id: string | null) {
+  await withOrg(orgId, (tx) => tx`
+    insert into notification_states (notification_id, user_id, organization_id, read_at, dismissed_at)
+    select n.id, ${userId}, ${orgId}, now(), now() from notifications n
+    where n.organization_id = ${orgId} and (n.user_id is null or n.user_id = ${userId})
+      ${id ? tx`and n.id = ${id}` : tx``}
+    on conflict (notification_id, user_id) do update set dismissed_at = now(), read_at = coalesce(notification_states.read_at, now())`);
 }
 
 export async function listOutbox(orgId: string) {
