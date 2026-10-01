@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Briefcase, Clock, MapPin } from "lucide-react";
 import { ApplyForm } from "@/components/apply/apply-form";
+import { Copyright, PoweredBy } from "@/components/layout/logo";
 import { employmentTypeLabel } from "@/lib/format";
 import { getPublicJob } from "@/lib/services/applications";
 
@@ -60,7 +61,7 @@ export default async function ApplyPage(props: PageProps<"/apply/[slug]">) {
           <ApplyForm slug={slug} company={job.company_name} jobTitle={job.title} />
         </aside>
       </main>
-      <footer className="py-8 text-center text-xs text-muted-foreground">Powered by Intervue AI</footer>
+      <footer className="flex flex-col items-center gap-2 py-8"><PoweredBy height={20} /><Copyright /></footer>
     </div>
   );
 }

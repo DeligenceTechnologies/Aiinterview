@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/layout/logo";
+import { Copyright, Logo, PoweredBy } from "@/components/layout/logo";
 
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
@@ -8,6 +8,10 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         <Link href="/"><Logo /></Link>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm">{children}</div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <PoweredBy height={20} />
+          <Copyright />
         </div>
       </div>
       <div className="relative hidden overflow-hidden bg-primary lg:block">

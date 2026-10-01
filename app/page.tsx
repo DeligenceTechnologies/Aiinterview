@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FileSearch, ListChecks, ShieldCheck, Video } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Logo } from "@/components/layout/logo";
+import { Copyright, Logo, PoweredBy } from "@/components/layout/logo";
 import { getAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ export default async function Home() {
         <p className="mx-auto mb-5 w-fit rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">AI video interviews for recruiting teams</p>
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">Interview every candidate. Review only the evidence.</h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground text-balance">
-          Intervue AI runs consistent, personalized first-round video interviews, records and transcribes them, and produces evidence-backed reports your team can verify in seconds.
+          HireLens runs consistent, personalized first-round video interviews, records and transcribes them, and produces evidence-backed reports your team can verify in seconds.
         </p>
         <div className="mt-10 flex justify-center gap-3">
           <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "h-11 px-6")}>Create a workspace</Link>
@@ -44,6 +44,10 @@ export default async function Home() {
           </div>
         ))}
       </section>
+      <footer className="flex flex-col items-center gap-3 border-t py-8">
+        <PoweredBy height={24} />
+        <Copyright />
+      </footer>
     </div>
   );
 }

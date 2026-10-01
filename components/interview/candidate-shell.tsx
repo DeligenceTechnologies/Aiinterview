@@ -1,4 +1,5 @@
 import { AlertCircle } from "lucide-react";
+import { Copyright, PoweredBy } from "@/components/layout/logo";
 
 export function CandidateShell({ company, job, children, step }: { company?: string; job?: string; children: React.ReactNode; step?: number }) {
   return (
@@ -22,7 +23,11 @@ export function CandidateShell({ company, job, children, step }: { company?: str
         </div>
       </header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">{children}</main>
-      <footer className="py-6 text-center text-xs text-muted-foreground">Powered by Intervue AI · Your responses are reviewed by the hiring team.</footer>
+      <footer className="flex flex-col items-center gap-2 py-6 text-center text-xs text-muted-foreground">
+        <PoweredBy height={20} />
+        <span>Your responses are reviewed by the hiring team.</span>
+        <Copyright />
+      </footer>
     </div>
   );
 }

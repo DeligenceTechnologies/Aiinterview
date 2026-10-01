@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "Intervue AI", template: "%s · Intervue AI" },
+  title: { default: "HireLens", template: "%s · HireLens" },
   description: "Structured, evidence-based AI video interviews for recruiting teams.",
 };
 
