@@ -7,7 +7,7 @@ import { log } from "@/lib/logger";
 import { paths, storage } from "@/lib/storage";
 import { OrgSettingsSchema, readSettings, type OrgSettings } from "./org-settings";
 
-export async function getDashboard(orgId: string) {
+export async function getDashboard(orgId: string, opts: { includeCandidateData: boolean }) {
   return withOrg(orgId, async (tx) => {
     const [stats] = await tx<{
       active_jobs: number; candidates: number; invited: number; started: number; completed: number; in_progress: number;
@@ -35,7 +35,9 @@ export async function getDashboard(orgId: string) {
         when exists (select 1 from interviews i where i.job_id = j.id and i.status = 'invited' and i.invited_at < now() - interval '3 days') then 'Invitations pending over 3 days'
         end as reason
       from jobs j where j.organization_id = ${orgId} and j.status = 'active'`;
-    return { stats, recent, attention: attention.filter((a) => a.reason) };
+    // Application counts are candidate data; hide them from roles without candidate access.
+    const visible = attention.filter((a) => a.reason && (opts.includeCandidateData || !a.reason.includes("application")));
+    return { stats, recent, attention: visible };
   });
 }
 
@@ -118,12 +120,15 @@ export async function getUsage(orgId: string) {
 // Notifications are shared per organization (or targeted at one user); read and
 // cleared state is tracked per person in notification_states.
 
-export async function listNotifications(orgId: string, userId: string) {
+const CANDIDATE_NOTIFICATIONS = ["application.received"];
+
+export async function listNotifications(orgId: string, userId: string, opts: { includeCandidateData: boolean }) {
   return withOrg(orgId, (tx) => tx<{ id: string; type: string; payload: Record<string, string>; read_at: Date | null; created_at: Date }[]>`
     select n.id, n.type, n.payload, s.read_at, n.created_at
     from notifications n
     left join notification_states s on s.notification_id = n.id and s.user_id = ${userId}
     where n.organization_id = ${orgId} and (n.user_id is null or n.user_id = ${userId}) and s.dismissed_at is null
+      ${opts.includeCandidateData ? tx`` : tx`and n.type <> all(${CANDIDATE_NOTIFICATIONS})`}
     order by n.created_at desc limit 20`);
 }
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SidebarNav } from "./sidebar-nav";
 
-export function MobileNav({ orgName }: { orgName: string }) {
+export function MobileNav({ orgName, hidden = [] }: { orgName: string; hidden?: string[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -16,7 +16,7 @@ export function MobileNav({ orgName }: { orgName: string }) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-64 p-4">
           <SheetHeader className="p-0 pb-4"><SheetTitle>{orgName}</SheetTitle></SheetHeader>
-          <SidebarNav onNavigate={() => setOpen(false)} />
+          <SidebarNav onNavigate={() => setOpen(false)} hidden={hidden} />
         </SheetContent>
       </Sheet>
     </>

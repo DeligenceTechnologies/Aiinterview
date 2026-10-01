@@ -38,7 +38,7 @@ export async function InterviewPage({ params, tab }: { params: Promise<{ intervi
         </>}
         actions={<InterviewActions id={detail.id} status={detail.status} canWrite={can(auth.role, "interview:write")} canDelete={can(auth.role, "data:delete")} canRegenerate={can(auth.role, "report:regenerate")} />}
       />
-      <InterviewViewer detail={detail} initialTab={tab} showScores={settings.show_scores} canViewRecording={can(auth.role, "recording:view")} canRegenerate={can(auth.role, "report:regenerate")} />
+      <InterviewViewer detail={detail} initialTab={tab} showScores={settings.show_scores} canViewRecording={can(auth.role, "recording:view")} canRegenerate={can(auth.role, "report:regenerate")} canViewCandidates={can(auth.role, "candidate:view")} />
     </>
   );
 }

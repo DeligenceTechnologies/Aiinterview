@@ -18,6 +18,18 @@ describe("permissions", () => {
     expect(can("interviewer", "recording:view")).toBe(true);
     expect(can("interviewer", "interview:write")).toBe(false);
   });
+  it("limits candidate data to hiring roles", () => {
+    for (const r of ["owner", "admin", "recruiter"] as const) expect(can(r, "candidate:view")).toBe(true);
+    for (const r of ["interviewer", "viewer"] as const) expect(can(r, "candidate:view")).toBe(false);
+  });
+  it("limits usage to owners and admins", () => {
+    expect(can("owner", "usage:view")).toBe(true);
+    expect(can("admin", "usage:view")).toBe(true);
+    for (const r of ["recruiter", "interviewer", "viewer"] as const) expect(can(r, "usage:view")).toBe(false);
+  });
+  it("lets recruiters manage templates", () => {
+    expect(can("recruiter", "template:write")).toBe(true);
+  });
   it("restricts role assignment", () => {
     expect(assignableRoles("owner")).not.toContain("owner");
     expect(assignableRoles("admin")).not.toContain("admin");

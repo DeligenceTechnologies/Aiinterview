@@ -15,8 +15,8 @@ type Role = "owner" | "admin" | "recruiter" | "interviewer" | "viewer";
 const LABEL: Record<Role, string> = { owner: "Owner", admin: "Admin", recruiter: "Recruiter", interviewer: "Interviewer", viewer: "Viewer" };
 const DESC: Record<Role, string> = {
   owner: "Everything, including billing and organization settings",
-  admin: "Manage jobs, candidates, templates, team and privacy",
-  recruiter: "Jobs, candidates, interviews and reports",
+  admin: "Manage jobs, candidates, templates, team, privacy and usage",
+  recruiter: "Jobs, candidates, templates, interviews and reports",
   interviewer: "View interviews, reports and recordings",
   viewer: "Read-only access to interviews and reports",
 };

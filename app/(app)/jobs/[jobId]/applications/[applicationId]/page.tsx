@@ -23,7 +23,7 @@ const REQ_ICON = {
 const REQ_LABEL = { met: "Met", partially_met: "Partially met", not_evident: "Not evident in resume" };
 
 export default async function ApplicationPage(props: PageProps<"/jobs/[jobId]/applications/[applicationId]">) {
-  const auth = await requireAuth("interview:view");
+  const auth = await requireAuth("candidate:view");
   const { jobId, applicationId } = await props.params;
   if (!isUuid(jobId) || !isUuid(applicationId)) notFound();
   const a = await getApplication(auth.orgId, applicationId);

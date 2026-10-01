@@ -15,7 +15,7 @@ import { listCandidates } from "@/lib/services/candidates";
 export const metadata = { title: "Candidates" };
 
 export default async function CandidatesPage(props: PageProps<"/candidates">) {
-  const auth = await requireAuth();
+  const auth = await requireAuth("candidate:view");
   const sp = await props.searchParams;
   const q = typeof sp.q === "string" ? sp.q : undefined;
   const page = Number(sp.page ?? 1) || 1;

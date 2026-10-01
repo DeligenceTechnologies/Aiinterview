@@ -6,6 +6,7 @@ export type Permission =
   | "billing:manage"
   | "team:manage"
   | "job:write"
+  | "candidate:view"
   | "candidate:write"
   | "template:write"
   | "interview:write"
@@ -20,17 +21,17 @@ export type Permission =
 
 const MATRIX: Record<Role, Permission[]> = {
   owner: [
-    "org:manage", "billing:manage", "team:manage", "job:write", "candidate:write", "template:write",
+    "org:manage", "billing:manage", "team:manage", "job:write", "candidate:view", "candidate:write", "template:write",
     "interview:write", "interview:view", "report:view", "report:regenerate", "recording:view",
     "data:delete", "privacy:manage", "audit:view", "usage:view",
   ],
   admin: [
-    "team:manage", "job:write", "candidate:write", "template:write", "interview:write", "interview:view",
+    "team:manage", "job:write", "candidate:view", "candidate:write", "template:write", "interview:write", "interview:view",
     "report:view", "report:regenerate", "recording:view", "data:delete", "privacy:manage", "audit:view", "usage:view",
   ],
   recruiter: [
-    "job:write", "candidate:write", "template:write", "interview:write", "interview:view", "report:view",
-    "report:regenerate", "recording:view", "usage:view",
+    "job:write", "candidate:view", "candidate:write", "template:write", "interview:write", "interview:view", "report:view",
+    "report:regenerate", "recording:view",
   ],
   interviewer: ["interview:view", "report:view", "recording:view"],
   viewer: ["interview:view", "report:view"],

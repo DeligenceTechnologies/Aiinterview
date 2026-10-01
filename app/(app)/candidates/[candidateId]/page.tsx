@@ -17,7 +17,7 @@ import { getCandidate } from "@/lib/services/candidates";
 import { listJobs } from "@/lib/services/jobs";
 
 export default async function CandidatePage(props: PageProps<"/candidates/[candidateId]">) {
-  const auth = await requireAuth();
+  const auth = await requireAuth("candidate:view");
   const { candidateId } = await props.params;
   if (!isUuid(candidateId)) notFound();
   const c = await getCandidate(auth.orgId, candidateId);

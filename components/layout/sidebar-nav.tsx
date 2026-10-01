@@ -14,11 +14,12 @@ const NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+/** `hidden` lists nav hrefs the current role can't open (computed on the server). */
+export function SidebarNav({ onNavigate, hidden = [] }: { onNavigate?: () => void; hidden?: string[] }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-0.5">
-      {NAV.map(({ href, label, icon: Icon }) => {
+      {NAV.filter((n) => !hidden.includes(n.href)).map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

@@ -25,7 +25,11 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
   if (!isUuid(jobId)) notFound();
   const job = await getJob(auth.orgId, jobId);
   if (!job) notFound();
-  const [interviews, applications] = await Promise.all([listInterviews(auth.orgId, { jobId }), listApplications(auth.orgId, jobId)]);
+  const canSeeCandidates = can(auth.role, "candidate:view");
+  const [interviews, applications] = await Promise.all([
+    listInterviews(auth.orgId, { jobId }),
+    canSeeCandidates ? listApplications(auth.orgId, jobId) : Promise.resolve([]),
+  ]);
   const screening = applications.some((a) => a.screening_status === "pending" || a.screening_status === "processing");
   const newCount = applications.filter((a) => a.status === "new").length;
   const req = job.parsed_requirements;
@@ -46,6 +50,7 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          {canSeeCandidates && (
           <section className="rounded-xl border bg-card">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="font-semibold">Applications <span className="ml-1 text-sm font-normal text-muted-foreground">{applications.length}</span>
@@ -55,6 +60,7 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
             </div>
             <ApplicationsTable rows={applications.map((a) => ({ ...a, created_at: a.created_at.toISOString() }))} />
           </section>
+          )}
           <section className="rounded-xl border bg-card">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-4">
               <h2 className="font-semibold">Interviews <span className="ml-1 text-sm font-normal text-muted-foreground">{interviews.total}</span></h2>
@@ -76,7 +82,7 @@ export default async function JobPage(props: PageProps<"/jobs/[jobId]">) {
           </section>
         </div>
         <div className="space-y-6">
-          <ApplyLinkCard jobId={job.id} enabled={job.apply_enabled} url={job.apply_slug ? applyUrl(job.apply_slug) : null} jobActive={job.status === "active"} canEdit={can(auth.role, "job:write")} />
+          {canSeeCandidates && <ApplyLinkCard jobId={job.id} enabled={job.apply_enabled} url={job.apply_slug ? applyUrl(job.apply_slug) : null} jobActive={job.status === "active"} canEdit={can(auth.role, "job:write")} />}
           <section className="rounded-xl border bg-card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-semibold"><Sparkles className="size-4 text-primary" /> Parsed requirements</h2>

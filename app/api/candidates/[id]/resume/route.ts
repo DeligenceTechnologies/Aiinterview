@@ -16,7 +16,7 @@ export const POST = route<{ id: string }>(async (req, { id }) => {
 }, { rateLimit: { key: "resume-upload", limit: 60, windowMs: 60 * 60_000 } });
 
 export const GET = route<{ id: string }>(async (req, { id }) => {
-  const auth = await requireApiAuth();
+  const auth = await requireApiAuth("candidate:view");
   const url = await resumeDownloadUrl(auth.orgId, uuidParam(id));
   return NextResponse.redirect(new URL(url, req.nextUrl.origin));
 });

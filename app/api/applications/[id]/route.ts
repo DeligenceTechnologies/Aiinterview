@@ -4,7 +4,7 @@ import { requireApiAuth } from "@/lib/auth/session";
 import { getApplication, setApplicationStatus } from "@/lib/services/applications";
 
 export const GET = route<{ id: string }>(async (_req, { id }) => {
-  const auth = await requireApiAuth("interview:view");
+  const auth = await requireApiAuth("candidate:view");
   const a = await getApplication(auth.orgId, uuidParam(id));
   if (!a) throw new ApiError(404, "Application not found");
   return a;

@@ -3,7 +3,7 @@ import { requireApiAuth } from "@/lib/auth/session";
 import { CandidateInputSchema, createCandidate, listCandidates } from "@/lib/services/candidates";
 
 export const GET = route(async (req) => {
-  const auth = await requireApiAuth();
+  const auth = await requireApiAuth("candidate:view");
   const sp = req.nextUrl.searchParams;
   return listCandidates(auth.orgId, { q: sp.get("q") ?? undefined, jobId: sp.get("jobId") ?? undefined, page: Number(sp.get("page") ?? 1) });
 });

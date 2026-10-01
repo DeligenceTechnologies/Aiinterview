@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { EmptyState } from "@/components/common/states";
+import { can } from "@/lib/auth/permissions";
 import { requireAuth } from "@/lib/auth/session";
 import { getDashboard } from "@/lib/services/workspace";
 import { timeAgo } from "@/lib/format";
@@ -14,14 +15,14 @@ export const metadata = { title: "Dashboard" };
 export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const auth = await requireAuth();
   const sp = await props.searchParams;
-  const { stats, recent, attention } = await getDashboard(auth.orgId);
+  const { stats, recent, attention } = await getDashboard(auth.orgId, { includeCandidateData: can(auth.role, "candidate:view") });
   const completionRate = stats.started ? Math.round((stats.completed / stats.started) * 100) : null;
   return (
     <>
       <PageHeader
         title={`Welcome back, ${auth.name.split(" ")[0]}`}
         description={`Here's what's happening at ${auth.orgName}.`}
-        actions={<><Link href="/candidates?new=1" className={buttonVariants({ variant: "outline" })}>Add candidate</Link><Link href="/jobs/new" className={buttonVariants()}>New job</Link></>}
+        actions={<>{can(auth.role, "candidate:write") && <Link href="/candidates?new=1" className={buttonVariants({ variant: "outline" })}>Add candidate</Link>}{can(auth.role, "job:write") && <Link href="/jobs/new" className={buttonVariants()}>New job</Link>}</>}
       />
       {sp.denied && <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">You don&apos;t have permission to view that page.</p>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">

@@ -45,12 +45,13 @@ function Card({ title, children, className, action }: { title?: React.ReactNode;
   );
 }
 
-export function InterviewViewer({ detail, initialTab, showScores, canViewRecording, canRegenerate }: {
+export function InterviewViewer({ detail, initialTab, showScores, canViewRecording, canRegenerate, canViewCandidates }: {
   detail: Detail;
   initialTab: ViewerTab;
   showScores: boolean;
   canViewRecording: boolean;
   canRegenerate: boolean;
+  canViewCandidates: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -150,7 +151,7 @@ export function InterviewViewer({ detail, initialTab, showScores, canViewRecordi
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
           <div className="min-w-0 space-y-6">
-            {tab === "overview" && <Overview detail={detail} report={report} showScores={showScores} jump={jump} onOpenReport={() => switchTab("report")} />}
+            {tab === "overview" && <Overview detail={detail} report={report} showScores={showScores} jump={jump} onOpenReport={() => switchTab("report")} canViewCandidates={canViewCandidates} />}
             {tab === "report" && <ReportView detail={detail} report={report} showScores={showScores} jump={jump} />}
             {tab === "questions" && <QuestionsView detail={detail} jump={jump} />}
             {tab === "evaluation" && <EvaluationView detail={detail} showScores={showScores} jump={jump} />}
@@ -174,7 +175,7 @@ function Disclaimer({ source }: { source?: string }) {
   );
 }
 
-function Overview({ detail, report, showScores, jump, onOpenReport }: { detail: Detail; report: StoredReport | null | undefined; showScores: boolean; jump: (ms: number, id?: string | null) => void; onOpenReport: () => void }) {
+function Overview({ detail, report, showScores, jump, onOpenReport, canViewCandidates }: { detail: Detail; report: StoredReport | null | undefined; showScores: boolean; jump: (ms: number, id?: string | null) => void; onOpenReport: () => void; canViewCandidates: boolean }) {
   const completedSections = detail.sections.filter((s) => s.status === "completed").length;
   return (
     <>
@@ -227,7 +228,7 @@ function Overview({ detail, report, showScores, jump, onOpenReport }: { detail: 
       <Card title="Interview details">
         <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
           {[
-            ["Candidate", <Link key="c" href={`/candidates/${detail.candidate_id}`} className="text-primary hover:underline">{detail.candidate_name}</Link>],
+            ["Candidate", canViewCandidates ? <Link key="c" href={`/candidates/${detail.candidate_id}`} className="text-primary hover:underline">{detail.candidate_name}</Link> : detail.candidate_name],
             ["Job", <Link key="j" href={`/jobs/${detail.job_id}`} className="text-primary hover:underline">{detail.job_title}</Link>],
             ["Template", detail.template_name ?? "—"],
             ["Started", formatDate(detail.started_at, true)],
