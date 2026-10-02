@@ -75,6 +75,15 @@ test("recruiter to candidate to report", async ({ page, browser }) => {
     ]).catch(() => {});
     if (cand.url().includes("/completed")) break;
     if (turn === 1 && process.env.E2E_SCREENSHOTS) await cand.screenshot({ path: "test-results/candidate-session.png" });
+    if (turn === 1) {
+      // No answer at all: the interviewer nudges, shows a countdown, then moves on by itself.
+      const question = await cand.getByText(/^(Question|Follow-up)$/).locator("xpath=following-sibling::p").first().textContent();
+      await expect(cand.getByText(/Start speaking when you're ready/)).toBeVisible({ timeout: 30_000 });
+      await expect(cand.getByText("No answer yet — moving to the next question.")).toBeVisible({ timeout: 30_000 });
+      if (process.env.E2E_SCREENSHOTS) await cand.screenshot({ path: "test-results/no-answer-countdown.png" });
+      await expect(cand.getByText(question!, { exact: true })).toBeHidden({ timeout: 30_000 });
+      continue;
+    }
     await answer.fill(LONG_ANSWER);
     await cand.getByRole("button", { name: "Done answering" }).click();
     await expect(answer).toBeHidden();

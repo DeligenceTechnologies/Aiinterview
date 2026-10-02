@@ -11,15 +11,18 @@ export const AI_CONFIG = {
   jobParser: FAST,
   interviewPlanner: REASONING,
   answerAnalyzer: FAST,
-  followupEngine: FAST,
+  /** Live interview turn (analysis + follow-up in one call): tuned for latency. */
+  answerTurn: { model: FAST, reasoningEffort: "none", verbosity: "low" } as const,
   evaluator: REASONING,
   reportGenerator: REASONING,
   applicationScreener: REASONING,
   realtime: process.env.OPENAI_MODEL_REALTIME || "gpt-realtime-2.1",
   transcription: process.env.OPENAI_MODEL_TRANSCRIBE || "gpt-live-transcribe",
   voice: process.env.OPENAI_REALTIME_VOICE || "marin",
-  /** Per-request timeout for text model calls. */
-  timeoutMs: 45_000,
+  /** Question-plan generation: large structured output, so keep reasoning light. */
+  plannerReasoningEffort: "low" as const,
+  /** Default per-request timeout for background text calls (plans, evaluations, reports, screening). */
+  timeoutMs: 120_000,
   /** Attempts for structured calls (validation failures count as attempts). */
   maxAttempts: 3,
 } as const;
@@ -30,6 +33,7 @@ export type AIFeature =
   | "interview_planner"
   | "answer_analyzer"
   | "followup_engine"
+  | "answer_turn"
   | "section_evaluator"
   | "report_generator"
   | "application_screener"

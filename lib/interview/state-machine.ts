@@ -2,7 +2,7 @@
 // but only this module decides what happens next. No I/O here, so it is
 // fully unit-testable.
 
-import type { AnswerAnalysis, FollowupDecision } from "@/lib/validation/ai-schemas";
+import type { FollowupDecision } from "@/lib/validation/ai-schemas";
 import type { InterviewState, StoredPlan } from "@/types/interview";
 
 export type NextAction = "follow_up" | "next_question" | "next_section" | "finish";
@@ -74,12 +74,6 @@ export function computeAllowed({ plan, state, nowMs }: FlowContext): Allowed {
     totalElapsedMs,
     totalLimitMs,
   };
-}
-
-/** Should we even ask the follow-up engine? Saves an LLM round-trip when not. */
-export function shouldConsiderFollowup(allowed: Allowed, analysis: AnswerAnalysis): boolean {
-  if (!allowed.follow_up) return false;
-  return analysis.followup_needed || analysis.candidate_asked_for_clarification;
 }
 
 export type ResolvedStep = {
@@ -174,7 +168,9 @@ export function sanitizeSpoken(text: string | null | undefined): string | null {
 }
 
 const INTERVIEW_STATUS_TRANSITIONS: Record<string, string[]> = {
-  created: ["invited", "cancelled"],
+  // A link can be shared manually without the invitation email, so a candidate
+  // may start from "created" as well as "invited".
+  created: ["invited", "consent_pending", "device_check", "ready", "in_progress", "cancelled", "expired"],
   invited: ["consent_pending", "device_check", "ready", "in_progress", "cancelled", "expired"],
   consent_pending: ["device_check", "ready", "in_progress", "cancelled", "expired"],
   device_check: ["ready", "in_progress", "cancelled", "expired"],
@@ -196,4 +192,11 @@ export function canTransition(from: string, to: string): boolean {
 
 export function assertTransition(from: string, to: string) {
   if (!canTransition(from, to)) throw new Error(`Illegal interview status transition ${from} -> ${to}`);
+}
+
+/** Remove a leading "thanks/thank you" (the client already said one). */
+export function stripThanks(text: string | null): string | null {
+  if (!text) return null;
+  const rest = text.replace(/^\s*(thanks|thank you)( (so|very) much)?( for (that|sharing( that)?|your answer))?[.,!]?\s*/i, "").trim();
+  return rest ? rest.charAt(0).toUpperCase() + rest.slice(1) : null;
 }

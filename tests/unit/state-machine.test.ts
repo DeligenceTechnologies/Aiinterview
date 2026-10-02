@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceState, canTransition, computeAllowed, resolveNextStep, sanitizeSpoken, shouldConsiderFollowup } from "@/lib/interview/state-machine";
-import type { AnswerAnalysis } from "@/lib/validation/ai-schemas";
+import { advanceState, canTransition, computeAllowed, resolveNextStep, sanitizeSpoken, stripThanks } from "@/lib/interview/state-machine";
 import { initialInterviewState, type InterviewState, type StoredPlan } from "@/types/interview";
 
 const q = (k: string) => ({ key: k, question: `Question ${k}?`, intent: "i", evaluation_criteria: ["c"], followup_topics: ["t"] });
@@ -11,9 +10,6 @@ const section = (i: number, over: Partial<StoredPlan["sections"][number]> = {}) 
 });
 const plan: StoredPlan = { version: 1, generated_by: "mock", prompt_version: "t", generated_at: "", sections: [section(0), section(1)] };
 const state = (over: Partial<InterviewState> = {}): InterviewState => ({ ...initialInterviewState(), phase: "in_progress", section_started_ms: 0, ...over });
-const analysis = (over: Partial<AnswerAnalysis> = {}): AnswerAnalysis => ({
-  relevance: "high", completeness: "partial", evidence: [], missing_evidence: ["x"], followup_needed: true, candidate_asked_for_clarification: false, summary: "", ...over,
-});
 
 describe("computeAllowed", () => {
   it("allows follow-ups within limits and time", () => {
@@ -92,13 +88,15 @@ describe("resolveNextStep", () => {
   });
 });
 
-describe("shouldConsiderFollowup", () => {
-  const allowed = computeAllowed({ plan, state: state(), nowMs: 1000 });
-  it("skips the follow-up engine for sufficient answers", () => {
-    expect(shouldConsiderFollowup(allowed, analysis({ followup_needed: false }))).toBe(false);
+describe("stripThanks", () => {
+  it("drops a leading thank-you after the client already said one", () => {
+    expect(stripThanks("Thanks.")).toBeNull();
+    expect(stripThanks("Thank you for sharing that. That's a useful example.")).toBe("That's a useful example.");
+    expect(stripThanks("thanks so much, that helps")).toBe("That helps");
   });
-  it("uses it for clarification requests", () => {
-    expect(shouldConsiderFollowup(allowed, analysis({ followup_needed: false, candidate_asked_for_clarification: true }))).toBe(true);
+  it("keeps other transitions", () => {
+    expect(stripThanks("That's helpful context.")).toBe("That's helpful context.");
+    expect(stripThanks(null)).toBeNull();
   });
 });
 
@@ -127,6 +125,10 @@ describe("interview status transitions", () => {
   it("allows the normal lifecycle", () => {
     const path = ["created", "invited", "device_check", "ready", "in_progress", "completing", "completed", "processing", "report_ready"];
     for (let i = 1; i < path.length; i++) expect(canTransition(path[i - 1], path[i])).toBe(true);
+  });
+  it("lets a candidate start from a link shared without the email", () => {
+    expect(canTransition("created", "device_check")).toBe(true);
+    expect(canTransition("created", "in_progress")).toBe(true);
   });
   it("blocks illegal transitions", () => {
     expect(canTransition("report_ready", "in_progress")).toBe(false);

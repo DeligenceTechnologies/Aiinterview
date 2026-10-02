@@ -18,8 +18,19 @@ type AIState = "idle" | "connecting" | "speaking" | "listening" | "thinking" | "
 
 const nowMs = () => Date.now();
 
-/** Wait after the candidate's last words before treating the answer as complete. */
-const SILENCE_SUBMIT_MS = 3200;
+// Answer timing (option A): "Done answering" submits immediately; silence is
+// only a safety net, with a visible countdown that speaking again cancels.
+/** Silence after the candidate has spoken before the answer is submitted. */
+const SILENCE_SUBMIT_MS = 10_000;
+/** No answer at all: gently offer to repeat the question… */
+const NO_ANSWER_NUDGE_MS = 20_000;
+/** …and move on with "no answer" after this long. */
+const NO_ANSWER_TIMEOUT_MS = 45_000;
+/** Show the countdown during the last few seconds. */
+const COUNTDOWN_MS = 5_000;
+const ACKS = ["Thank you.", "Thanks for sharing that.", "Got it, thank you."];
+const NUDGE = "Take your time. Would you like me to repeat the question? Or select Done answering to move on.";
+type Trigger = "button" | "silence" | "no_answer_timeout";
 
 async function post<T>(url: string, body: unknown, opts: { retries?: number; onRetry?: (n: number) => void } = {}): Promise<T> {
   const retries = opts.retries ?? 4;
@@ -56,7 +67,8 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
   const [heard, setHeard] = useState("");
   const [typing, setTyping] = useState(demoMode);
   const [typed, setTyped] = useState("");
-  const [silenceHint, setSilenceHint] = useState(false);
+  const [countdown, setCountdown] = useState<{ kind: "silence" | "no_answer"; seconds: number } | null>(null);
+  const [nudged, setNudged] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
 
   const video = useRef<HTMLVideoElement>(null);
@@ -71,9 +83,12 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
   const answerStart = useRef<number | null>(null);
   const pending = useRef(0);
   const speakingNow = useRef(false);
-  const submitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const itemTimes = useRef(new Map<string, { start: number; end: number | null }>());
   const lastSpeechStart = useRef<number | null>(null);
+  const listenStartedAt = useRef(0);
+  const lastActivityAt = useRef(0);
+  const nudgedRef = useRef(false);
+  const ackIndex = useRef(0);
   const finishing = useRef(false);
   const events = useRef<{ event_id: string; type: string; payload?: Record<string, string | number | boolean | null> }[]>([]);
 
@@ -127,13 +142,14 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
     setHeard("");
     answerStart.current = null;
     itemTimes.current.clear();
-    setSilenceHint(false);
+    nudgedRef.current = false;
+    setNudged(false);
+    setCountdown(null);
   };
 
   const finish = useCallback(async (reason: "finished" | "candidate_ended" | "time_limit") => {
     if (finishing.current) return;
     finishing.current = true;
-    if (submitTimer.current) clearTimeout(submitTimer.current);
     setStage("finishing");
     setAiState("finishing");
     engine.current?.close();
@@ -163,16 +179,16 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
     saveSegment({ client_event_id: `int-${u.question_id ?? "closing"}-${start}`, speaker: "interviewer", text: transcript, start_ms: start, end_ms: clock(), question_id: u.question_id });
     if (u.kind === "closing") return finish("finished");
     if (current.current !== u) return;
+    listenStartedAt.current = Date.now();
+    lastActivityAt.current = Date.now();
     setAiState("listening");
     engine.current?.startListening();
-    const listenedAt = Date.now();
-    setTimeout(() => { if (aiRef.current === "listening" && current.current === u && !answerStart.current && Date.now() - listenedAt >= 44_000) setSilenceHint(true); }, 45_000);
   }, [clock, finish, logEvent, saveSegment]);
 
-  const submit = useCallback(async () => {
+  const submit = useCallback(async (trigger: Trigger) => {
     const u = current.current;
     if (!u?.question_id || aiRef.current !== "listening") return;
-    if (submitTimer.current) clearTimeout(submitTimer.current);
+    setCountdown(null);
     setAiState("thinking");
     engine.current?.stopListening();
     const text = [...parts.current, typedRef.current.trim()].filter(Boolean).join(" ").trim();
@@ -180,10 +196,22 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
       const now = clock();
       saveSegment({ client_event_id: `typed-${u.question_id}`, speaker: "candidate", text: typedRef.current.trim(), start_ms: answerStart.current ?? now, end_ms: now, question_id: u.question_id });
     }
+    logEvent("answer_submitted", { trigger, chars: text.length });
+    // Acknowledge right away so the candidate isn't left in silence while the next question is prepared.
+    const ack = text ? ACKS[ackIndex.current++ % ACKS.length] : "Alright, let's continue.";
+    const ackStart = clock();
+    const ackDone = engine.current
+      ? engine.current.speak(ack).then((r) => saveSegment({ client_event_id: `ack-${u.question_id}`, speaker: "interviewer", text: r.transcript, start_ms: ackStart, end_ms: clock(), question_id: u.question_id })).catch(() => {})
+      : Promise.resolve();
+    const sentAt = Date.now();
     try {
-      const res = await post<Payload>(`/api/public/interview/${token}/answer`, {
-        question_id: u.question_id, text, start_ms: answerStart.current, end_ms: clock(),
-      }, { retries: 30, onRetry: () => setConnection("reconnecting") });
+      const [res] = await Promise.all([
+        post<Payload>(`/api/public/interview/${token}/answer`, {
+          question_id: u.question_id, text, start_ms: answerStart.current, end_ms: clock(), trigger, ack_spoken: true,
+        }, { retries: 30, onRetry: () => setConnection("reconnecting") }),
+        ackDone,
+      ]);
+      logEvent("answer_processed", { trigger, server_ms: Date.now() - sentAt });
       setConnection("connected");
       if (res.progress) setProgress(res.progress);
       if (res.utterance && res.utterance.question_id !== u.question_id) await ask(res.utterance);
@@ -193,13 +221,46 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
       setError((err as Error).message);
       setStage("error");
     }
-  }, [ask, clock, finish, saveSegment, token]);
+  }, [ask, clock, finish, logEvent, saveSegment, token]);
 
-  const scheduleSubmit = useCallback(() => {
-    if (submitTimer.current) clearTimeout(submitTimer.current);
-    if (aiRef.current !== "listening" || speakingNow.current || pending.current > 0 || !parts.current.length) return;
-    submitTimer.current = setTimeout(() => void submit(), SILENCE_SUBMIT_MS);
-  }, [submit]);
+  // Answer timer: silence safety net (after speech) and no-answer nudge/timeout.
+  useEffect(() => {
+    if (ai !== "listening") return;
+    const tick = setInterval(() => {
+      if (aiRef.current !== "listening" || speakingNow.current || pending.current > 0) {
+        setCountdown(null);
+        return;
+      }
+      const now = Date.now();
+      const spoke = parts.current.length > 0;
+      const typing = typedRef.current.trim().length > 0;
+      if (typing) {
+        setCountdown(null); // typed answers finish with the button only
+        return;
+      }
+      if (spoke) {
+        const left = SILENCE_SUBMIT_MS - (now - lastActivityAt.current);
+        if (left <= 0) return void submit("silence");
+        setCountdown(left <= COUNTDOWN_MS ? { kind: "silence", seconds: Math.ceil(left / 1000) } : null);
+        return;
+      }
+      const idle = now - listenStartedAt.current;
+      if (idle >= NO_ANSWER_TIMEOUT_MS) return void submit("no_answer_timeout");
+      if (idle >= NO_ANSWER_NUDGE_MS && !nudgedRef.current) {
+        nudgedRef.current = true;
+        setNudged(true);
+        logEvent("no_answer_nudge");
+        const e = engine.current;
+        if (e) {
+          e.stopListening();
+          void e.speak(NUDGE).finally(() => { if (aiRef.current === "listening") e.startListening(); });
+        }
+      }
+      const left = NO_ANSWER_TIMEOUT_MS - idle;
+      setCountdown(left <= COUNTDOWN_MS ? { kind: "no_answer", seconds: Math.ceil(left / 1000) } : null);
+    }, 250);
+    return () => clearInterval(tick);
+  }, [ai, submit, logEvent]);
 
   const callbacks = useRef<VoiceCallbacks | null>(null);
   const [cbProxy] = useState<VoiceCallbacks>(() => ({
@@ -253,8 +314,8 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
     onSpeechStart: () => {
       speakingNow.current = true;
       setCandidateSpeaking(true);
-      setSilenceHint(false);
-      if (submitTimer.current) clearTimeout(submitTimer.current);
+      setCountdown(null);
+      lastActivityAt.current = Date.now();
       const now = clock();
       lastSpeechStart.current = now;
       if (answerStart.current == null) answerStart.current = now;
@@ -262,7 +323,7 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
     onSpeechStop: () => {
       speakingNow.current = false;
       setCandidateSpeaking(false);
-      scheduleSubmit();
+      lastActivityAt.current = Date.now();
     },
     onTranscript: (text, itemId) => {
       const u = current.current;
@@ -270,9 +331,9 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
       setHeard(parts.current.join(" "));
       const start = lastSpeechStart.current ?? clock();
       saveSegment({ client_event_id: `cand-${itemId}`, speaker: "candidate", text, start_ms: start, end_ms: Math.max(start, clock() - 400), question_id: u?.question_id ?? null });
-      scheduleSubmit();
+      lastActivityAt.current = Date.now();
     },
-    onPendingChange: (n) => { pending.current = n; if (n === 0) scheduleSubmit(); },
+    onPendingChange: (n) => { pending.current = n; if (n === 0) lastActivityAt.current = Date.now(); },
     onConnection: (s) => {
       if (s === "connected") setConnection("connected");
       else if (!finishing.current) void reconnect();
@@ -340,10 +401,10 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
   const doneAnswering = async () => {
     if (aiRef.current !== "listening") return;
     if (answerStart.current == null) answerStart.current = clock();
-    // Give in-flight transcriptions a moment to arrive.
-    const deadline = Date.now() + 4000;
-    while (pending.current > 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 200));
-    await submit();
+    // Give in-flight transcriptions a moment to arrive (usually well under a second).
+    const deadline = Date.now() + 2500;
+    while (pending.current > 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 100));
+    await submit("button");
   };
 
   const totalMs = (progress?.total_minutes ?? 0) * 60_000;
@@ -429,12 +490,18 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
             <div className="rounded-2xl bg-white/5 p-4">
               <label htmlFor="typed" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">Your answer</label>
               <Textarea id="typed" rows={5} value={typed} autoFocus
-                onChange={(e) => { setTyped(e.target.value); typedRef.current = e.target.value; if (answerStart.current == null) answerStart.current = clock(); }}
+                onChange={(e) => { setTyped(e.target.value); typedRef.current = e.target.value; lastActivityAt.current = Date.now(); if (answerStart.current == null) answerStart.current = clock(); }}
                 className="border-white/10 bg-black/30 text-zinc-100 placeholder:text-zinc-500" placeholder="Type your answer…" />
             </div>
           )}
 
-          {silenceHint && listening && <p className="rounded-xl bg-white/5 px-4 py-3 text-sm text-zinc-300">Take your time. When you&apos;re ready, start speaking — or select “Done answering” to move on.</p>}
+          {nudged && listening && !countdown && <p className="rounded-xl bg-white/5 px-4 py-3 text-sm text-zinc-300">Take your time. Start speaking when you&apos;re ready, ask the interviewer to repeat the question, or select “Done answering” to move on.</p>}
+          {countdown && listening && (
+            <p role="status" className="flex items-center gap-2 rounded-xl bg-indigo-500/15 px-4 py-3 text-sm text-indigo-100">
+              <span className="flex size-6 items-center justify-center rounded-full bg-indigo-500 font-mono text-xs font-semibold tabular text-white">{countdown.seconds}</span>
+              {countdown.kind === "silence" ? "Moving on in a moment — keep talking to continue your answer." : "No answer yet — moving to the next question."}
+            </p>
+          )}
 
           {stage === "finishing" && (
             <div className="flex items-center gap-2 rounded-xl bg-white/5 px-4 py-3 text-sm text-zinc-300"><Loader2 className="size-4 animate-spin" /> Saving your recording ({upload.pending} part{upload.pending === 1 ? "" : "s"} left)…</div>

@@ -7,13 +7,15 @@ import { json, withOrg, withSystem, type Tx } from "@/lib/database/db";
 import { audit, notify } from "@/lib/audit";
 import { ApiError } from "@/lib/api";
 import { analyzeAnswer } from "@/lib/ai/answer-analyzer";
-import { suggestFollowup } from "@/lib/ai/followup-engine";
+import { analyzeTurn } from "@/lib/ai/answer-turn";
+import { mockAnalyzeAnswer } from "@/lib/ai/mock";
 import { createRealtimeCredentials, type RealtimeCredentials } from "@/lib/ai/realtime-session";
 import { runInBackground } from "@/lib/background";
 import { aiIsLive, env } from "@/lib/env";
 import { emailTemplates, sendEmail } from "@/lib/email";
 import { log } from "@/lib/logger";
 import { hashToken, isWellFormedToken } from "@/lib/security/tokens";
+import type { AnswerAnalysis, FollowupDecision } from "@/lib/validation/ai-schemas";
 import { readSettings } from "@/lib/services/org-settings";
 import {
   InterviewStateSchema,
@@ -25,7 +27,7 @@ import {
   type PendingUtterance,
   type StoredPlan,
 } from "@/types/interview";
-import { advanceState, canTransition, computeAllowed, resolveNextStep, shouldConsiderFollowup, totalPlannedMs } from "./state-machine";
+import { advanceState, canTransition, computeAllowed, resolveNextStep, stripThanks, totalPlannedMs } from "./state-machine";
 import { processInterview } from "./processing";
 
 export const CONSENT_VERSION = "2026-09-v1";
@@ -271,7 +273,15 @@ export async function getSessionState(token: string): Promise<SessionPayload> {
  * during AI calls: (1) persist answer idempotently, (2) analyze + decide,
  * (3) re-lock, verify nothing moved, and advance.
  */
-export async function submitAnswer(token: string, input: { question_id: string; text: string; start_ms: number | null; end_ms: number | null }): Promise<SessionPayload & { duplicate?: boolean }> {
+export type AnswerTrigger = "button" | "silence" | "no_answer_timeout";
+
+export async function submitAnswer(token: string, input: {
+  question_id: string; text: string; start_ms: number | null; end_ms: number | null;
+  /** What ended the answer (for diagnostics). */
+  trigger?: AnswerTrigger;
+  /** The client already said a short "thank you" while we decide. */
+  ack_spoken?: boolean;
+}): Promise<SessionPayload & { duplicate?: boolean }> {
   const ctx = await resolveToken(token);
   if (!ACTIVE.includes(ctx.status) || !ctx.plan) throw new ApiError(409, "The interview is not in progress.");
   const plan = ctx.plan;
@@ -301,7 +311,9 @@ export async function submitAnswer(token: string, input: { question_id: string; 
   const planned = section.questions[state.question_index];
   const nowMs = clockMs(ctx.startedAt);
 
-  // Phase 2: analysis + follow-up suggestion (outside any transaction).
+  // Phase 2: analysis + follow-up suggestion (outside any transaction). One
+  // fast AI call, and none at all when a follow-up isn't possible or there was
+  // no answer — then we advance immediately and analyze in the background.
   const thread = await withOrg(ctx.orgId, (tx) => tx<{ question_text: string; transcript_text: string | null }[]>`
     select q.question_text, a.transcript_text from interview_questions q left join interview_answers a on a.question_id = q.id
     where q.id = ${state.current_planned_question_id ?? question.id} or q.parent_question_id = ${state.current_planned_question_id ?? question.id}
@@ -309,7 +321,8 @@ export async function submitAnswer(token: string, input: { question_id: string; 
   const priorContext = thread.filter((t) => t.question_text !== question.question_text && t.transcript_text)
     .map((t) => `Q: ${t.question_text}\nA: ${t.transcript_text!.slice(0, 1200)}`).join("\n\n") || null;
 
-  const analysis = await analyzeAnswer({
+  const allowed = computeAllowed({ plan, state, nowMs });
+  const turnInput = {
     orgId: ctx.orgId,
     sectionName: section.name,
     sectionObjective: section.objective,
@@ -319,22 +332,20 @@ export async function submitAnswer(token: string, input: { question_id: string; 
     followupTopics: planned?.followup_topics ?? [],
     answer: text,
     priorContext,
-  });
-
-  const allowed = computeAllowed({ plan, state, nowMs });
-  let decision = null;
-  if (shouldConsiderFollowup(allowed, analysis)) {
-    decision = await suggestFollowup({
-      orgId: ctx.orgId,
-      question: question.question_text,
-      answer: text,
-      analysis,
-      followupTopics: planned?.followup_topics ?? [],
+  };
+  const fastPath = !allowed.follow_up || !text;
+  let analysis: (AnswerAnalysis & { source: string }) | null = text ? null : { ...mockAnalyzeAnswer(""), source: "rule" };
+  let decision: FollowupDecision | null = null;
+  let aiMs = 0;
+  if (!fastPath) {
+    const turn = await analyzeTurn({
+      ...turnInput,
       alreadyAsked: thread.map((t) => t.question_text),
-      followupsUsed: state.followups_used,
       followupsRemaining: section.max_followups - state.followups_used,
-      sectionSecondsRemaining: (allowed.sectionLimitMs - allowed.sectionElapsedMs) / 1000,
     });
+    analysis = turn.analysis;
+    decision = turn.decision;
+    aiMs = turn.ms;
   }
   const step = resolveNextStep(allowed, decision);
 
@@ -342,13 +353,18 @@ export async function submitAnswer(token: string, input: { question_id: string; 
   const result = await withOrg(ctx.orgId, async (tx) => {
     const [locked] = await tx<{ state: unknown; status: InterviewStatus }[]>`select state, status from interviews where id = ${ctx.id} for update`;
     const fresh = InterviewStateSchema.parse(locked.state);
-    await tx`update interview_answers set analysis = ${json(analysis)} where question_id = ${question.id}`;
+    if (analysis) await tx`update interview_answers set analysis = ${json(analysis)} where question_id = ${question.id}`;
     if (fresh.current_question_id !== question.id) {
       return { state: fresh, status: locked.status, completedSection: null as number | null };
     }
     const adv = advanceState(plan, fresh, step.action, nowMs);
     const next = { ...adv.state, answered_count: fresh.answered_count + 1 };
-    const decisionRecord = { action: step.action, reason: step.reason, overridden: step.overridden, missing_evidence: decision?.missing_evidence ?? [], ai_suggested: decision?.action ?? null };
+    const decisionRecord = {
+      action: step.action, reason: step.reason, overridden: step.overridden, missing_evidence: decision?.missing_evidence ?? [],
+      ai_suggested: decision?.action ?? null, ai_ms: aiMs, fast_path: fastPath, trigger: input.trigger ?? null,
+    };
+    // If the client already thanked the candidate, don't open with another "thank you".
+    const transition = input.ack_spoken ? stripThanks(step.transition) : step.transition;
 
     if (adv.sectionCompleted != null) {
       await tx`update interview_sections set status = 'completed', completed_at = now(), end_ms = ${nowMs}
@@ -361,11 +377,11 @@ export async function submitAnswer(token: string, input: { question_id: string; 
       next.pending_utterance = {
         question_id: null,
         kind: "closing",
-        text: `${step.transition ? step.transition + " " : ""}That brings us to the end of the interview. Thank you for your time, ${first}. The hiring team at ${ctx.companyName} will review your interview and be in touch about next steps. You can now end the session.`,
+        text: `${transition ? transition + " " : ""}That brings us to the end of the interview. Thank you for your time, ${first}. The hiring team at ${ctx.companyName} will review your interview and be in touch about next steps. You can now end the session.`,
       };
       await tx`update interviews set status = 'completing' where id = ${ctx.id}`;
     } else if (step.action === "follow_up") {
-      const spoken = [step.transition, step.followupQuestion].filter(Boolean).join(" ");
+      const spoken = [transition, step.followupQuestion].filter(Boolean).join(" ");
       const id = await insertQuestion(tx, ctx, {
         sectionId: section.section_id, text: step.followupQuestion!, spoken, type: "followup", intent: "Follow-up",
         criteria: question.evaluation_criteria, planKey: null, parentId: fresh.current_planned_question_id, decision: decisionRecord, askedAtMs: nowMs,
@@ -379,8 +395,8 @@ export async function submitAnswer(token: string, input: { question_id: string; 
       if (newSection) {
         await tx`update interview_sections set status = 'in_progress', started_at = now(), start_ms = ${nowMs} where id = ${s.section_id}`;
       }
-      const lead = step.transition ?? "Thank you.";
-      const spoken = newSection ? `${lead} Let's move on to ${s.name.toLowerCase()}. ${q.question}` : `${lead} ${q.question}`;
+      const lead = transition ?? (input.ack_spoken ? "" : "Thank you.");
+      const spoken = [lead, newSection ? `Let's move on to ${s.name.toLowerCase()}.` : "", q.question].filter(Boolean).join(" ");
       const id = await insertQuestion(tx, ctx, {
         sectionId: s.section_id, text: q.question, spoken, type: "planned", intent: q.intent, criteria: q.evaluation_criteria,
         planKey: q.key, parentId: null, decision: decisionRecord, askedAtMs: nowMs,
@@ -392,6 +408,13 @@ export async function submitAnswer(token: string, input: { question_id: string; 
     await saveState(tx, ctx.id, next);
     return { state: next, status: (adv.finished ? "completing" : locked.status) as InterviewStatus, completedSection: adv.sectionCompleted };
   });
+
+  if (fastPath && text) {
+    runInBackground("answer.analyze", async () => {
+      const a = await analyzeAnswer(turnInput);
+      await withOrg(ctx.orgId, (tx) => tx`update interview_answers set analysis = ${json(a)} where question_id = ${question.id}`);
+    });
+  }
 
   if (result.completedSection != null) {
     const sectionId = plan.sections[result.completedSection].section_id;

@@ -26,6 +26,7 @@ export async function generateInterviewPlan(input: {
     orgId: input.orgId,
     feature: "interview_planner",
     model: AI_CONFIG.interviewPlanner,
+    reasoningEffort: AI_CONFIG.plannerReasoningEffort,
     promptVersion: prompt.version,
     system: prompt.system,
     user: prompt.buildUser({

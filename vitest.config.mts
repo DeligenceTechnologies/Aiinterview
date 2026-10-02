@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
-    env: loadEnv(mode, process.cwd(), ""),
+    // Never call the real AI from unit tests.
+    env: { ...loadEnv(mode, process.cwd(), ""), AI_PROVIDER: "mock" },
     testTimeout: 20_000,
   },
 }));

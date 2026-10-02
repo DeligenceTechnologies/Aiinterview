@@ -58,10 +58,16 @@ export async function runStructured<S extends z.ZodType>(opts: {
   user: string;
   schema: S;
   schemaName: string;
+  /** Optional latency tuning; omitted means model defaults. */
+  reasoningEffort?: "none" | "low" | "medium" | "high";
+  verbosity?: "low" | "medium" | "high";
+  maxAttempts?: number;
+  timeoutMs?: number;
 }): Promise<z.infer<S>> {
   const api = openai();
   let lastErr: unknown;
-  for (let attempt = 1; attempt <= AI_CONFIG.maxAttempts; attempt++) {
+  const maxAttempts = opts.maxAttempts ?? AI_CONFIG.maxAttempts;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const started = Date.now();
     try {
       const res = await api.responses.parse({
@@ -70,8 +76,9 @@ export async function runStructured<S extends z.ZodType>(opts: {
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-        text: { format: zodTextFormat(opts.schema, opts.schemaName) },
-      });
+        text: { format: zodTextFormat(opts.schema, opts.schemaName), ...(opts.verbosity ? { verbosity: opts.verbosity } : {}) },
+        ...(opts.reasoningEffort ? { reasoning: { effort: opts.reasoningEffort } } : {}),
+      } as Parameters<typeof api.responses.parse>[0], opts.timeoutMs ? { timeout: opts.timeoutMs, maxRetries: 0 } : undefined);
       const durationMs = Date.now() - started;
       const parsed = opts.schema.safeParse(res.output_parsed);
       await recordUsage({
@@ -107,7 +114,7 @@ export async function runStructured<S extends z.ZodType>(opts: {
       // Auth / bad request errors will not succeed on retry.
       if (status && [400, 401, 403, 404].includes(status)) break;
     }
-    if (attempt < AI_CONFIG.maxAttempts) await new Promise((r) => setTimeout(r, 500 * attempt));
+    if (attempt < maxAttempts) await new Promise((r) => setTimeout(r, 500 * attempt));
   }
   if (lastErr instanceof AIError) throw lastErr;
   throw new AIError("request_failed", lastErr instanceof Error ? lastErr.message : "AI request failed");

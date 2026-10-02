@@ -34,7 +34,9 @@ export async function createRealtimeCredentials(input: {
             noise_reduction: { type: "near_field" },
             turn_detection: {
               type: "semantic_vad",
-              eagerness: "low",
+              // Report end-of-speech promptly; the client decides when an answer is done
+              // (button, or a 10 s silence safety net), so pauses never cut answers short.
+              eagerness: "auto",
               create_response: false,
               interrupt_response: false,
             },

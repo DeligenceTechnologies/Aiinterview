@@ -7,6 +7,8 @@ const Schema = z.object({
   text: z.string().max(20_000),
   start_ms: z.number().int().min(0).nullable(),
   end_ms: z.number().int().min(0).nullable(),
+  trigger: z.enum(["button", "silence", "no_answer_timeout"]).optional(),
+  ack_spoken: z.boolean().optional(),
 });
 
 export const POST = route<{ token: string }>(async (req, { token }) => submitAnswer(token, await body(req, Schema)), {
