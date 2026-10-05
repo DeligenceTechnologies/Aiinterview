@@ -96,20 +96,4 @@ npm test             # vitest (unit + RLS integration)
 npm run test:e2e     # playwright end-to-end test (demo AI mode, fake camera/mic)
 ```
 
-## Using Supabase instead of local Postgres
 
-1. Set `DATABASE_URL` to your Supabase Postgres connection string. The role must not bypass RLS.
-2. Run `npm run db:migrate`.
-3. For storage, set `STORAGE_DRIVER=supabase`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_STORAGE_BUCKET` (use a private bucket).
-
-Authentication is built into the app, so Supabase Auth is not required.
-
-## Email
-
-`EMAIL_PROVIDER=log` (the default) does not deliver emails. It records them under **Settings → Email outbox**, where you can copy invitation links. Set `EMAIL_PROVIDER=resend` with `EMAIL_PROVIDER_API_KEY` and `EMAIL_FROM` to deliver them.
-
-## Status
-
-All MVP phases 1–8 of the spec are implemented. Post-MVP items are not: billing, ATS and calendar integrations, semantic transcript search, PDF export and multilingual interviews.
-
-The interview control loop, idempotency, recording, evaluation and report pipeline are verified in demo mode by the API smoke test and the Playwright end-to-end test. The live OpenAI path (Realtime WebRTC and structured outputs) follows the current official documentation but has not been exercised without an API key. Test it once `OPENAI_API_KEY` is set.
