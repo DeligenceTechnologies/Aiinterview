@@ -21,6 +21,7 @@ test("recruiter to candidate to report", async ({ page, browser }) => {
   await page.getByLabel("Full name").fill("Casey Recruiter");
   await page.getByLabel("Work email").fill(email);
   await page.getByLabel("Company / workspace name").fill(`E2E Co ${id}`);
+  await page.getByLabel("Access code").fill(process.env.SIGNUP_ACCESS_CODE ?? "");
   await page.getByLabel("Password").fill(`pw-${id}-${Math.random().toString(36).slice(2)}`);
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(page).toHaveURL(/\/dashboard/);

@@ -1,4 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
+
+// Sign-up needs the access code; tests read it from .env.local like the app does.
+if (!process.env.SIGNUP_ACCESS_CODE && existsSync(".env.local")) {
+  const m = readFileSync(".env.local", "utf8").match(/^SIGNUP_ACCESS_CODE=(.+)$/m);
+  if (m) process.env.SIGNUP_ACCESS_CODE = m[1].trim();
+}
 
 export default defineConfig({
   testDir: "tests/e2e",

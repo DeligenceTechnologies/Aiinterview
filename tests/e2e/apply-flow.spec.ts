@@ -9,6 +9,7 @@ test("public application with AI screening", async ({ page, browser }) => {
   await page.getByLabel("Full name").fill("Pat Recruiter");
   await page.getByLabel("Work email").fill(`apply-${id}@e2e.test`);
   await page.getByLabel("Company / workspace name").fill(`Apply Co ${id}`);
+  await page.getByLabel("Access code").fill(process.env.SIGNUP_ACCESS_CODE ?? "");
   await page.getByLabel("Password").fill(`pw-${id}-${Math.random().toString(36).slice(2)}`);
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
@@ -63,4 +64,26 @@ test("public application with AI screening", async ({ page, browser }) => {
   await expect(page.locator("input[readonly]").first()).toHaveValue(/\/interview\//);
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("link", { name: "View interview" })).toBeVisible();
+});
+
+test("sign-up is closed without an access code", async ({ page }) => {
+  await page.goto("/signup");
+  await page.getByLabel("Full name").fill("No Code");
+  await page.getByLabel("Work email").fill(`nocode-${Date.now()}@e2e.test`);
+  await page.getByLabel("Company / workspace name").fill("No Code Co");
+  await page.getByLabel("Access code").fill("not-the-code");
+  await page.getByLabel("Password").fill("long-enough-password");
+  await page.getByRole("button", { name: "Create workspace" }).click();
+  await expect(page.getByText(/available by approval/)).toBeVisible();
+});
+
+test("home page access request form", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Book a demo" }).first()).toHaveAttribute("href", /cal\.com/);
+  await expect(page.getByRole("link", { name: /sign in|open app|create a workspace/i })).toHaveCount(0);
+  await page.getByLabel("Full name").fill("E2E Requester");
+  await page.getByLabel("Work email").fill(`requester-${Date.now()}@e2e.test`);
+  await page.getByLabel("Company", { exact: true }).fill("E2E Co");
+  await page.getByRole("button", { name: "Request access" }).click();
+  await expect(page.getByText("Thanks, we've received your request")).toBeVisible();
 });

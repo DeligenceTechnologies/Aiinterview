@@ -15,6 +15,8 @@ const EnvSchema = z.object({
   EMAIL_PROVIDER: z.enum(["log", "resend"]).default("log"),
   EMAIL_PROVIDER_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  /** New workspaces need this code (shared with approved customers). Unset = sign-up closed except by team invite. */
+  SIGNUP_ACCESS_CODE: z.string().min(8).optional(),
 });
 
 type Env = z.infer<typeof EnvSchema>;

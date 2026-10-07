@@ -1,52 +1,430 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { FileSearch, ListChecks, ShieldCheck, Video } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import type { Metadata } from "next";
+import {
+  ArrowRight, BarChart3, Bell, Briefcase, Lightbulb, ShoppingBag, CalendarX2, Check, CheckCircle2, Clock, ExternalLink, FileSearch, FileStack,
+  Fingerprint, Globe, KeyRound, Link2, Lock, MessageSquareText, PlayCircle, Scale, ScrollText, ShieldCheck, Sparkles,
+  Timer, UserCheck, Users, Video, X,
+} from "lucide-react";
 import { Copyright, Logo, PoweredBy } from "@/components/layout/logo";
-import { getAuth } from "@/lib/auth/session";
-import { cn } from "@/lib/utils";
+import { InterviewMock, ReportMock, ScreeningMock } from "@/components/marketing/mocks";
+import { SiteHeader } from "@/components/marketing/site-header";
+import { AccessRequestForm } from "@/components/marketing/access-request-form";
+import Image from "next/image";
+import { DEMO_URL, UPWORK_URL } from "@/lib/marketing";
 
-const FEATURES = [
-  { icon: ListChecks, title: "Personalized, structured plans", body: "Questions generated from the job requirements and the candidate's resume, inside your template's time and follow-up limits." },
-  { icon: Video, title: "Realtime voice interviewer", body: "A professional AI interviewer asks one question at a time and follows up on specific information gaps." },
-  { icon: FileSearch, title: "Evidence you can watch", body: "Every assessment links to timestamped transcript moments. Click to jump the recording straight there." },
-  { icon: ShieldCheck, title: "Recruiters decide", body: "No automatic hire/reject. Consent, private storage, tenant isolation and a full audit trail built in." },
+export const metadata: Metadata = {
+  title: { absolute: "HireLens · AI video interviews with evidence you can verify" },
+  description:
+    "HireLens runs personalized AI video interviews for every candidate and gives recruiters reports where every assessment links to the exact moment in the transcript and recording.",
+  openGraph: {
+    title: "HireLens · AI video interviews with evidence you can verify",
+    description: "Interview every candidate. Review only the evidence. Powered by Deligence Technologies.",
+    type: "website",
+  },
+};
+
+const BLUE_BTN = "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0B5BD3] px-6 py-3.5 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(11,91,211,0.6)] hover:bg-[#0A4FB8]";
+const GHOST_BTN = "inline-flex items-center justify-center gap-2 rounded-xl border border-[#CBD7EA] bg-white px-6 py-3.5 text-base font-semibold text-[#0F1F3A] hover:border-[#0B5BD3] hover:text-[#0B5BD3]";
+
+function Eyebrow({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
+  return <p className={`text-sm font-semibold tracking-[0.18em] uppercase ${dark ? "text-[#7DB8FF]" : "text-[#0B5BD3]"}`}>{children}</p>;
+}
+
+function SectionHead({ eyebrow, title, intro, dark, center }: { eyebrow: string; title: React.ReactNode; intro?: string; dark?: boolean; center?: boolean }) {
+  return (
+    <div className={center ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
+      <Eyebrow dark={dark}>{eyebrow}</Eyebrow>
+      <h2 className={`mt-3 text-3xl font-bold tracking-tight text-balance sm:text-[2.6rem] sm:leading-[1.15] ${dark ? "text-white" : "text-[#0F1F3A]"}`}>{title}</h2>
+      {intro && <p className={`mt-4 text-lg leading-relaxed ${dark ? "text-[#BFD0EA]" : "text-[#4A5874]"}`}>{intro}</p>}
+    </div>
+  );
+}
+
+const STEPS = [
+  { icon: Briefcase, title: "Create a job", body: "Paste the job description. AI turns it into required and preferred skills, experience and responsibilities." },
+  { icon: Link2, title: "Share the apply link", body: "Post one link anywhere. Candidates apply with their resume, and AI screens each one against the requirements." },
+  { icon: Lightbulb, title: "Personal interview plan", body: "Every invited candidate gets questions built from the job and their own resume, within your template." },
+  { icon: Video, title: "Live AI interview", body: "A voice and video interview with adaptive follow-ups, whenever suits the candidate, with no scheduling." },
+  { icon: FileSearch, title: "Evidence report", body: "Each section is assessed and linked to the exact moment in the transcript and recording." },
+  { icon: UserCheck, title: "Your team decides", body: "Compare candidates, shortlist, and move the right people to the next round. The AI never decides." },
 ];
 
-export default async function Home() {
-  if (await getAuth()) redirect("/dashboard");
+const COMPARE: [string, string, string][] = [
+  ["Scheduling", "Days of back-and-forth across calendars and time zones", "Candidates interview the same day, any time"],
+  ["Consistency", "Different interviewer, different questions", "Same structure and criteria for every candidate"],
+  ["Personalization", "Generic scripts or improvised questions", "Questions built from the job and each resume"],
+  ["Notes", "Partial notes written from memory", "Full transcript, recording and structured report"],
+  ["Verification", "“Trust me, they were strong”", "Every assessment links to the exact moment"],
+  ["Recruiter time", "About an hour per candidate", "About 10 minutes of review"],
+];
+
+const MORE = [
+  { icon: FileStack, title: "Interview templates", body: "Sections, timing, question counts, follow-up limits and evaluation criteria." },
+  { icon: BarChart3, title: "Compare candidates", body: "Section assessments side by side, sorted only by criteria you choose." },
+  { icon: Users, title: "Team roles", body: "Owner, Admin, Recruiter, Interviewer and Viewer, each seeing only what they should." },
+  { icon: Bell, title: "Dashboard and alerts", body: "Pipeline at a glance, new applications, completed interviews and ready reports." },
+  { icon: Globe, title: "Nothing to install", body: "Candidates join from the browser with a secure personal link, with captions on." },
+  { icon: Timer, title: "Retention controls", body: "Auto-delete old recordings and delete candidate data on request." },
+];
+
+const TRUST = [
+  { icon: UserCheck, title: "Humans decide", body: "No AI output ever makes a hire or reject decision. HireLens prepares the evidence; your team decides." },
+  { icon: Scale, title: "Fair by design", body: "Only job-relevant evidence is assessed. No inference from age, gender, accent, appearance or emotion." },
+  { icon: Fingerprint, title: "Consent first", body: "Candidates see a plain-language notice and give recorded, timestamped consent before anything starts." },
+  { icon: Lock, title: "Company data isolated", body: "Each company's data is separated at the database level, with server-side checks on every request." },
+  { icon: KeyRound, title: "Private by default", body: "Resumes and recordings live in private storage and open only through short-lived links." },
+  { icon: ScrollText, title: "Full audit trail", body: "Report views, evidence clicks and recording access are logged for accountability." },
+];
+
+const TEAM_SHOTS = [
+  {
+    icon: Briefcase,
+    title: "Create a job in minutes",
+    body: "Paste the job description and pick an interview template. HireLens extracts the requirements and is ready to screen and interview.",
+    points: ["Required and preferred skills extracted automatically", "Choose a template: sections, timing and follow-up limits", "Turn on a public apply link with one switch"],
+    src: "/marketing/job.png",
+    alt: "Job page showing parsed requirements, applications and interviews",
+  },
+  {
+    icon: Link2,
+    title: "Invite candidates with a secure link",
+    body: "Add a candidate with their resume and send a personal interview link by email, or copy it and share it yourself.",
+    points: ["One personal, expiring link per candidate", "Reminders and new links in one click", "The interview plan is tailored to the resume automatically"],
+    src: "/marketing/invite.png",
+    alt: "Invitation dialog showing a candidate's secure interview link",
+  },
+  {
+    icon: Users,
+    title: "Bring your whole team",
+    body: "Invite colleagues and give each person the right access, from owners and admins to interviewers who only review interviews.",
+    points: ["Five roles: Owner, Admin, Recruiter, Interviewer, Viewer", "Candidate data visible only to hiring roles", "Every sensitive action recorded in an audit log"],
+    src: "/marketing/team.png",
+    alt: "Team settings page listing members and their roles",
+  },
+];
+
+const ABOUT_POINTS = [
+  { icon: Clock, text: "Faster first rounds, with no scheduling" },
+  { icon: ShieldCheck, text: "Privacy, consent and fairness built in" },
+  { icon: MessageSquareText, text: "Structured, evidence-based conversations" },
+];
+
+const FAQ = [
+  ["Do candidates need to install anything?", "No. Candidates open a secure personal link in a modern browser, give consent, run a quick camera and microphone check, and start. They can also type an answer instead of speaking."],
+  ["Can the AI reject candidates?", "No. HireLens never makes hire or reject decisions. Application tags and interview assessments are summaries of evidence that help your team prioritise. Every decision stays with people."],
+  ["How does the AI decide what to ask?", "Each interview follows your template: sections, timing, number of questions and follow-up limits. Within that structure the AI personalizes questions from the job and the candidate's resume, and asks a follow-up only when an answer leaves a specific gap."],
+  ["How do I know the assessments are right?", "You don't have to take them on trust. Every assessment comes with evidence: click it and the recording jumps to that moment, with the transcript highlighted."],
+  ["How long is an interview?", "You decide in the template. Typical setups range from a 15-minute screen to a 45-minute structured technical interview."],
+  ["What happens if a candidate's connection drops?", "Progress is saved continuously. The candidate reopens their link and continues where they left off, and the recording is kept in parts."],
+  ["Where is our data stored, and who can see it?", "Data is stored privately, isolated per company, and access is controlled by roles. For example, interviewers and viewers can't see candidate contact details or resumes. Retention settings let you remove old recordings automatically."],
+  ["How much does it cost?", "Pricing depends on your hiring volume. Book a demo or contact us and we'll put together a plan for your team."],
+];
+
+export default function Home() {
   return (
-    <div className="min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Logo />
-        <div className="flex gap-2">
-          <Link href="/login" className={buttonVariants({ variant: "ghost" })}>Sign in</Link>
-          <Link href="/signup" className={buttonVariants()}>Get started</Link>
-        </div>
-      </header>
-      <section className="mx-auto max-w-4xl px-6 pt-16 pb-20 text-center sm:pt-24">
-        <p className="mx-auto mb-5 w-fit rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">AI video interviews for recruiting teams</p>
-        <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">Interview every candidate. Review only the evidence.</h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground text-balance">
-          HireLens runs consistent, personalized first-round video interviews, records and transcribes them, and produces evidence-backed reports your team can verify in seconds.
-        </p>
-        <div className="mt-10 flex justify-center gap-3">
-          <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "h-11 px-6")}>Create a workspace</Link>
-          <Link href="/login" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-11 px-6")}>Sign in</Link>
-        </div>
-      </section>
-      <section className="mx-auto grid max-w-6xl gap-4 px-6 pb-24 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map(({ icon: Icon, title, body }) => (
-          <div key={title} className="rounded-xl border bg-card p-6">
-            <Icon className="size-5 text-primary" />
-            <h3 className="mt-4 font-semibold">{title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+    <div className="min-h-screen bg-[#F8FAFD] text-[#0F1F3A]">
+      <SiteHeader />
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_-10%,rgba(22,115,255,0.16),transparent),radial-gradient(40rem_24rem_at_0%_10%,rgba(56,189,248,0.10),transparent)]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pt-14 pb-20 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:pt-20 lg:pb-28">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#CFE0FA] bg-white px-3.5 py-1.5 text-sm font-medium text-[#0B4FB8]">
+              <Sparkles className="size-4" /> AI-powered video interviews
+            </p>
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-6xl sm:leading-[1.05]">
+              Interview every candidate. <span className="text-[#0B5BD3]">Review only the evidence.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-[#4A5874] sm:text-xl">
+              HireLens runs personalized AI video interviews for every candidate and gives your team reports where every assessment links to the exact moment in the transcript and recording.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className={BLUE_BTN}>Book a demo <ArrowRight className="size-4" /></a>
+              <a href="#contact" className={GHOST_BTN}>Contact us</a>
+            </div>
+            <ul className="mt-8 grid gap-2.5 text-sm text-[#3D4D6A] sm:grid-cols-2">
+              {["Interviews available 24/7", "Questions tailored to each resume", "Evidence behind every assessment", "Your team makes every decision"].map((t) => (
+                <li key={t} className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[#0B5BD3]" />{t}</li>
+              ))}
+            </ul>
           </div>
-        ))}
+          <div className="relative">
+            <ReportMock />
+            <p className="mt-3 text-center text-xs text-[#7A8AA6]">Product preview with sample data</p>
+          </div>
+        </div>
       </section>
-      <footer className="flex flex-col items-center gap-3 border-t py-8">
-        <PoweredBy height={24} />
-        <Copyright />
+
+      {/* Key facts */}
+      <section className="border-y border-[#E3EAF5] bg-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-[#E3EAF5] px-5 sm:px-8 lg:grid-cols-4">
+          {[["~10 min", "of recruiter review per candidate, instead of about an hour*"], ["Same day", "first interviews, with no scheduling"], ["2–4 s", "for the AI interviewer to respond after an answer"], ["24/7", "interviews, whenever candidates are available"]].map(([n, l]) => (
+            <div key={n} className="px-4 py-8 text-center sm:px-6">
+              <p className="text-3xl font-bold tracking-tight text-[#0B5BD3] sm:text-4xl">{n}</p>
+              <p className="mx-auto mt-2 max-w-[16rem] text-sm leading-snug text-[#4A5874]">{l}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how-it-works" className="scroll-mt-20 py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHead center eyebrow="How it works" title="From job post to decision, in six steps" intro="Your team sets up the role and reviews the evidence. HireLens handles everything in between." />
+          <ol className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {STEPS.map(({ icon: Icon, title, body }, i) => (
+              <li key={title} className="relative rounded-2xl border border-[#DCE4F0] bg-white p-6">
+                <div className="flex items-center justify-between">
+                  <span className="flex size-11 items-center justify-center rounded-xl bg-[#E9F1FD] text-[#0B5BD3]"><Icon className="size-5" /></span>
+                  <span className="font-mono text-sm font-semibold text-[#9AB0D0]">0{i + 1}</span>
+                </div>
+                <h3 className="mt-5 text-lg font-semibold">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#4A5874]">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="scroll-mt-20 bg-white py-24">
+        <div className="mx-auto max-w-7xl space-y-24 px-5 sm:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <SectionHead eyebrow="Applications and AI screening" title="One link to apply. Every applicant screened against the role." />
+              <ul className="mt-7 space-y-3.5 text-base text-[#3D4D6A]">
+                {["Share a public apply link on LinkedIn, job boards or your careers page", "Each applicant becomes a candidate automatically, with the resume parsed", "Every requirement is checked against the resume, with quoted evidence", "Match tags are capped by evidence, and nobody is ever auto-rejected"].map((t) => (
+                  <li key={t} className="flex gap-3"><Check className="mt-0.5 size-5 shrink-0 text-[#0B5BD3]" />{t}</li>
+                ))}
+              </ul>
+            </div>
+            <ScreeningMock />
+          </div>
+
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="lg:order-2">
+              <SectionHead eyebrow="The AI interviewer" title="A real conversation, not a questionnaire" />
+              <ul className="mt-7 space-y-3.5 text-base text-[#3D4D6A]">
+                {["Personalized questions from the job and the candidate's resume", "Targeted follow-ups only when an answer leaves a real gap", "Responds in seconds, and never cuts off a thinking pause", "Works within your template's sections, timing and limits", "Never reveals scores or asks inappropriate questions"].map((t) => (
+                  <li key={t} className="flex gap-3"><Check className="mt-0.5 size-5 shrink-0 text-[#0B5BD3]" />{t}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="lg:order-1"><InterviewMock /></div>
+          </div>
+
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <SectionHead eyebrow="Evidence-backed reports" title="Verify any assessment in seconds" />
+              <ul className="mt-7 space-y-3.5 text-base text-[#3D4D6A]">
+                {["Section-by-section assessment, with an optional 1–5 score", "Strengths and areas to explore in the next round", "Full timestamped transcript and video recording", "Click any evidence: the video jumps to that exact moment", "Compare candidates for the same job side by side"].map((t) => (
+                  <li key={t} className="flex gap-3"><Check className="mt-0.5 size-5 shrink-0 text-[#0B5BD3]" />{t}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F8FAFD] p-6">
+              <div className="space-y-3">
+                {[["Strength", "Owns production systems end to end", "12:41"], ["Strength", "Clear trade-off reasoning on data design", "18:09"], ["Explore next", "Limited evidence on Kubernetes at scale", "22:30"]].map(([k, t, ts]) => (
+                  <div key={t} className="flex items-center gap-4 rounded-xl border border-[#E3EAF5] bg-white p-4">
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${k === "Strength" ? "bg-[#DDF5E8] text-[#0B6B3A]" : "bg-[#FDF0D9] text-[#8A5300]"}`}>{k}</span>
+                    <p className="flex-1 text-sm font-medium">{t}</p>
+                    <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-[#0B5BD3]"><PlayCircle className="size-4" />{ts}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-xs text-[#7A8AA6]">Sample report findings</p>
+            </div>
+          </div>
+
+          <div>
+            <SectionHead eyebrow="And everything else" title="Built for real hiring teams" />
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {MORE.map(({ icon: Icon, title, body }) => (
+                <div key={title} className="rounded-2xl border border-[#DCE4F0] bg-[#F8FAFD] p-6">
+                  <Icon className="size-6 text-[#0B5BD3]" />
+                  <h3 className="mt-4 font-semibold">{title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#4A5874]">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Team: jobs, team management, invitations (real screenshots) */}
+      <section id="team" className="scroll-mt-20 py-24">
+        <div className="mx-auto max-w-7xl space-y-20 px-5 sm:px-8">
+          <SectionHead center eyebrow="For hiring teams" title="Set up a role and invite candidates in minutes" intro="Everything your team needs to run interviews together, with the right access for each person." />
+          {TEAM_SHOTS.map((shot, i) => (
+            <div key={shot.title} className="grid items-center gap-10 lg:grid-cols-[1fr_1.35fr]">
+              <div className={i % 2 ? "lg:order-2" : ""}>
+                <span className="flex size-11 items-center justify-center rounded-xl bg-[#E9F1FD] text-[#0B5BD3]"><shot.icon className="size-5" /></span>
+                <h3 className="mt-5 text-2xl font-bold tracking-tight sm:text-3xl">{shot.title}</h3>
+                <p className="mt-3 text-lg leading-relaxed text-[#4A5874]">{shot.body}</p>
+                <ul className="mt-5 space-y-2.5 text-[15px] text-[#3D4D6A]">
+                  {shot.points.map((t) => <li key={t} className="flex gap-3"><Check className="mt-0.5 size-5 shrink-0 text-[#0B5BD3]" />{t}</li>)}
+                </ul>
+              </div>
+              <div className={i % 2 ? "lg:order-1" : ""}>
+                <div className="overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white shadow-[0_24px_60px_-20px_rgba(11,30,61,0.25)]">
+                  <Image src={shot.src} alt={shot.alt} width={1600} height={1000} className="h-auto w-full" />
+                </div>
+                <p className="mt-3 text-center text-xs text-[#7A8AA6]">Screenshot of the HireLens app with sample data</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Why: before vs after */}
+      <section id="why" className="scroll-mt-20 py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHead center eyebrow="Why HireLens" title="First-round interviews, without the first-round grind" />
+          <div className="mt-12 overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white">
+            <div className="hidden grid-cols-[180px_1fr_1fr] border-b border-[#E3EAF5] bg-[#F3F7FC] text-sm font-semibold md:grid">
+              <p className="px-6 py-4 text-[#5A6A86]" />
+              <p className="flex items-center gap-2 px-6 py-4 text-[#5A6A86]"><CalendarX2 className="size-4" /> Traditional phone screens</p>
+              <p className="flex items-center gap-2 px-6 py-4 text-[#0B5BD3]"><Sparkles className="size-4" /> With HireLens</p>
+            </div>
+            {COMPARE.map(([k, a, b]) => (
+              <div key={k} className="grid border-b border-[#EEF2F8] last:border-0 md:grid-cols-[180px_1fr_1fr]">
+                <p className="px-6 pt-5 text-sm font-semibold md:py-5">{k}</p>
+                <p className="flex items-start gap-2 px-6 py-2 text-sm text-[#5A6A86] md:py-5"><X className="mt-0.5 size-4 shrink-0 text-[#B04A3B]" />{a}</p>
+                <p className="flex items-start gap-2 px-6 pt-1 pb-5 text-sm font-medium md:py-5"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#0B5BD3]" />{b}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-xs text-[#7A8AA6]">*Recruiter time is an illustrative estimate (scheduling, a 30-minute call and write-up, versus reviewing a report). Your numbers will vary.</p>
+        </div>
+      </section>
+
+      {/* Trust */}
+      <section id="trust" className="scroll-mt-20 bg-[#0B1E3D] py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHead dark eyebrow="Trust, fairness and security" title="AI that supports your judgement, and never replaces it" intro="The AI handles the language work: questions, analysis and summaries. The platform controls the interview process, data and security." />
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {TRUST.map(({ icon: Icon, title, body }) => (
+              <div key={title} className="rounded-2xl border border-[#24406E] bg-[#132B52] p-6">
+                <Icon className="size-6 text-[#7DB8FF]" />
+                <h3 className="mt-4 font-semibold text-white">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#BFD0EA]">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About */}
+      <section id="about" className="scroll-mt-20 py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <SectionHead eyebrow="About us" title="Built by Deligence Technologies" />
+            <div className="mt-6 space-y-4 text-lg leading-relaxed text-[#4A5874]">
+              <p>We&apos;re a technology company focused on practical AI. We built HireLens because first-round interviews take the most recruiter time and give the least reliable signal: rushed calls, inconsistent questions and notes written from memory.</p>
+              <p>HireLens makes that first conversation consistent, personalized and verifiable, so your team spends its time on the candidates and decisions that matter.</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-8">
+            <Logo height={44} />
+            <ul className="mt-6 space-y-3 text-sm text-[#3D4D6A]">
+              {ABOUT_POINTS.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-3"><Icon className="size-5 text-[#0B5BD3]" />{text}</li>
+              ))}
+            </ul>
+            <div className="mt-8 border-t border-[#E3EAF5] pt-6"><PoweredBy height={22} /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="scroll-mt-20 bg-white py-24">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8">
+          <SectionHead center eyebrow="FAQ" title="Questions recruiters ask us" />
+          <div className="mt-10 divide-y divide-[#E3EAF5] rounded-2xl border border-[#DCE4F0]">
+            {FAQ.map(([q, a]) => (
+              <details key={q} className="group px-6 py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
+                  {q}
+                  <span className="text-xl leading-none text-[#0B5BD3] transition-transform group-open:rotate-45" aria-hidden>+</span>
+                </summary>
+                <p className="mt-3 text-[15px] leading-relaxed text-[#4A5874]">{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Buy on Upwork */}
+      <section id="upwork" className="scroll-mt-20 bg-white py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="grid items-center gap-10 rounded-3xl border border-[#DCE4F0] bg-[#F8FAFD] p-8 sm:p-12 lg:grid-cols-[1.3fr_1fr]">
+            <div>
+              <Eyebrow>Available on Upwork</Eyebrow>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-[2.4rem] sm:leading-[1.15]">Get your own HireLens, customized for your team</h2>
+              <p className="mt-4 text-lg leading-relaxed text-[#4A5874]">You will get an AI-powered video interviewing and candidate evaluation platform, set up and tailored to your hiring process, and bought securely through Upwork.</p>
+              <ul className="mt-6 grid gap-3 text-base text-[#3D4D6A] sm:grid-cols-2">
+                {["AI video interviews and reports", "Public apply link with AI screening", "Your branding and interview templates", "Set up and customized for you"].map((t) => (
+                  <li key={t} className="flex gap-3"><Check className="mt-0.5 size-5 shrink-0 text-[#0B5BD3]" />{t}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex flex-col items-start gap-4 lg:items-center lg:text-center">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-[#E9F1FD] text-[#0B5BD3]"><ShoppingBag className="size-7" /></span>
+              <a href={UPWORK_URL} target="_blank" rel="noopener noreferrer" className={BLUE_BTN}>Buy on Upwork <ExternalLink className="size-4" /></a>
+              <p className="text-sm text-[#5A6A86]">Prefer to talk first? <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0B5BD3] hover:underline">Book a demo</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" className="scroll-mt-20 py-24">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 sm:px-8 lg:grid-cols-[1fr_1.1fr]">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B5BD3] to-[#0B1E3D] p-8 sm:p-12">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(30rem_16rem_at_80%_0%,rgba(125,184,255,0.35),transparent)]" />
+            <div className="relative flex h-full flex-col">
+              <Eyebrow dark>Contact us</Eyebrow>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance text-white sm:text-[2.6rem] sm:leading-[1.15]">See HireLens on your next open role</h2>
+              <p className="mt-5 text-lg leading-relaxed text-[#D6E6FF]">Book a 20-minute demo. We&apos;ll show the full flow, from apply link to evidence-backed report, and talk through pricing for your hiring volume.</p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-[#0B4FB8] hover:bg-[#EAF2FF]">Book a demo <ArrowRight className="size-4" /></a>
+                <a href={UPWORK_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/40 px-6 py-3.5 text-base font-semibold text-white hover:bg-white/10">Buy on Upwork <ExternalLink className="size-4" /></a>
+              </div>
+              <div className="flex-1" />
+              <p className="mt-8 text-sm text-[#BFD3F5]">Access is by approval. Request access with the form, or book a call, and we&apos;ll set up your workspace. Pricing: contact us.</p>
+            </div>
+          </div>
+          <AccessRequestForm />
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#E3EAF5] bg-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="space-y-4">
+            <Logo height={32} />
+            <p className="max-w-sm text-sm leading-relaxed text-[#5A6A86]">AI video interviews with evidence you can verify. Interview every candidate; review only the evidence.</p>
+            <PoweredBy height={20} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Product</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-[#5A6A86]">
+              <li><a href="#how-it-works" className="hover:text-[#0B5BD3]">How it works</a></li>
+              <li><a href="#features" className="hover:text-[#0B5BD3]">Features</a></li>
+              <li><a href="#trust" className="hover:text-[#0B5BD3]">Trust and security</a></li>
+              <li><a href="#faq" className="hover:text-[#0B5BD3]">FAQ</a></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Contact</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-[#5A6A86]">
+              <li><a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#0B5BD3]">Book a demo</a></li>
+              <li><a href={UPWORK_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#0B5BD3]">Buy on Upwork</a></li>
+              <li><a href="#contact" className="hover:text-[#0B5BD3]">Request access</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-[#E3EAF5] py-6 text-center"><Copyright /></div>
       </footer>
     </div>
   );

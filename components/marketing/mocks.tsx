@@ -1,0 +1,146 @@
+// Illustrative product previews for the marketing page, built from the same
+// visual language as the app. Content is sample data, labelled as such.
+import { CheckCircle2, CircleDashed, Mic, PlayCircle, Radio, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+
+function Frame({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white shadow-[0_24px_60px_-20px_rgba(11,30,61,0.25)]", className)}>
+      <div className="flex items-center gap-1.5 border-b border-[#E8EEF7] bg-[#F7F9FC] px-4 py-2.5">
+        <span className="size-2.5 rounded-full bg-[#F2B8B5]" />
+        <span className="size-2.5 rounded-full bg-[#F5D9A6]" />
+        <span className="size-2.5 rounded-full bg-[#BFE3C8]" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Hero preview: an evidence-backed report section with a linked recording. */
+export function ReportMock() {
+  return (
+    <Frame>
+      <div className="grid gap-0 sm:grid-cols-[1.1fr_1fr]">
+        <div className="space-y-4 p-5">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-[#0F1F3A]">Jordan Lee</p>
+              <p className="text-xs text-[#5A6A86]">Senior Full Stack Engineer · 31 min</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-[#DDF5E8] px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-[#0B6B3A]">Report ready</span>
+          </div>
+          <div className="rounded-xl border border-[#E3EAF5] p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-[#0F1F3A]">Project deep dive</p>
+              <span className="rounded-md bg-[#DDF5E8] px-2 py-0.5 text-xs font-semibold text-[#0B6B3A]">Strong · 4/5</span>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-[#5A6A86]">Clear personal ownership of the payments service, with specific design decisions and a production incident.</p>
+            <div className="mt-3 space-y-2">
+              {[["12:41", "“I designed the webhook pipeline with idempotency keys.”"], ["14:05", "“I fixed duplicate charges with reconciliation jobs.”"]].map(([t, q]) => (
+                <div key={t} className="flex items-start gap-2 rounded-lg bg-[#F0F5FD] p-2.5">
+                  <PlayCircle className="mt-0.5 size-4 shrink-0 text-[#0B5BD3]" />
+                  <p className="text-xs text-[#0F1F3A]"><span className="font-mono font-semibold text-[#0B5BD3]">{t}</span> {q}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[["Experience", "Strong"], ["Technical", "Adequate"], ["Behavioral", "Strong"]].map(([s, a]) => (
+              <div key={s} className="rounded-lg border border-[#E3EAF5] px-2 py-2">
+                <p className="text-[11px] text-[#5A6A86]">{s}</p>
+                <p className="text-xs font-semibold text-[#0F1F3A]">{a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-[#E8EEF7] bg-[#0B1E3D] p-5 sm:border-t-0 sm:border-l">
+          <div className="relative aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-[#1D3A6B] to-[#0B1E3D]">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <PlayCircle className="size-10 text-white/80" />
+            </div>
+            <span className="absolute bottom-2 left-2 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[10px] text-white">12:41</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div className="flex h-full">
+              <span className="w-[16%] bg-[#4F8DF5]" /><span className="w-[22%] bg-[#38BDF8]" /><span className="w-[34%] bg-[#34D399]" /><span className="w-[28%] bg-[#FBBF24]" />
+            </div>
+          </div>
+          <div className="space-y-2 text-[11px] leading-relaxed">
+            <p className="text-[#7DB8FF]"><span className="font-mono">12:30</span> Interviewer</p>
+            <p className="text-white/80">What part of the payments service did you personally own?</p>
+            <p className="rounded-md bg-white/10 p-2 text-white"><span className="font-mono text-[#7DB8FF]">12:41</span> Candidate: I designed the webhook pipeline…</p>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** AI screening preview for a public application. */
+export function ScreeningMock() {
+  const rows: [string, "met" | "partial", string][] = [
+    ["Node.js", "met", "Led a move to Node.js microservices"],
+    ["PostgreSQL", "met", "Cut p95 latency 40% via query tuning"],
+    ["AWS", "met", "Migrated checkout to AWS"],
+    ["4+ years each", "partial", "8 years total; per-skill not stated"],
+  ];
+  return (
+    <Frame>
+      <div className="space-y-4 p-5">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-[#0F1F3A]">Morgan Applicant</p>
+            <p className="text-xs text-[#5A6A86]">Applied via public link · Backend Engineer</p>
+          </div>
+          <span className="shrink-0 rounded-md bg-[#E3EEFF] px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-[#0B4FB8]">Good match</span>
+        </div>
+        <p className="flex items-center gap-1.5 text-xs text-[#5A6A86]"><Sparkles className="size-3.5 text-[#0B5BD3]" /> 3 of 4 required items evidenced in the resume</p>
+        <div className="divide-y divide-[#EEF2F8] rounded-xl border border-[#E3EAF5]">
+          {rows.map(([r, s, e]) => (
+            <div key={r} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 px-3 py-2.5 sm:grid-cols-[110px_90px_1fr]">
+              <p className="text-xs font-semibold text-[#0F1F3A]">{r}</p>
+              <p className={cn("flex items-center gap-1 text-xs", s === "met" ? "text-[#0B6B3A]" : "text-[#9A5B00]")}>
+                {s === "met" ? <CheckCircle2 className="size-3.5" /> : <CircleDashed className="size-3.5" />}{s === "met" ? "Met" : "Partial"}
+              </p>
+              <p className="col-span-2 text-xs text-[#5A6A86] sm:col-span-1">{e}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <span className="rounded-lg bg-[#0B5BD3] px-3 py-1.5 text-xs font-semibold text-white">Invite to AI interview</span>
+          <span className="rounded-lg border border-[#DCE4F0] px-3 py-1.5 text-xs font-semibold text-[#0F1F3A]">Shortlist</span>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Candidate-side live interview preview. */
+export function InterviewMock() {
+  return (
+    <Frame className="bg-[#0B0F19]">
+      <div className="grid gap-3 bg-[#0B0F19] p-4 sm:grid-cols-[1.3fr_1fr]">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gradient-to-br from-[#25324A] to-[#0F172A]">
+          <Image src="/marketing/candidate-interview.jpg" alt="Sample candidate on camera during an interview" fill sizes="(min-width: 1024px) 360px, 90vw" className="object-cover" />
+          <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white"><span className="size-1.5 rounded-full bg-red-500" />Recording</span>
+        </div>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col items-center rounded-xl bg-white/5 p-4 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-indigo-500/30"><Radio className="size-6 text-indigo-200" /></div>
+            <p className="mt-2 text-xs font-semibold text-white">Alex · AI interviewer</p>
+            <p className="text-[11px] text-zinc-400">Listening…</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-3">
+            <p className="text-[10px] font-semibold tracking-wide text-zinc-500 uppercase">Follow-up</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-200">You mentioned leading the migration. What part did you personally own?</p>
+          </div>
+          <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+            <span className="flex items-center gap-1.5 text-[11px] text-zinc-400"><Mic className="size-3.5 text-emerald-400" /> Mic on</span>
+            <span className="rounded-md bg-indigo-500 px-2 py-1 text-[11px] font-semibold text-white">Done answering</span>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}

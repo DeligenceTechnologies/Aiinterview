@@ -15,7 +15,7 @@ export default async function LoginPage() {
       <Suspense><LoginForm /></Suspense>
       <div className="mt-6 flex justify-between text-sm">
         <Link href="/forgot-password" className="text-muted-foreground hover:text-foreground">Forgot password?</Link>
-        <Link href="/signup" className="font-medium text-primary hover:underline">Create account</Link>
+        <Link href="/#contact" className="font-medium text-primary hover:underline">Request access</Link>
       </div>
     </>
   );

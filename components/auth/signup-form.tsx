@@ -8,7 +8,10 @@ export function SignupForm({ invite }: { invite: { token: string; email: string;
   const fields: Field[] = [
     { name: "name", label: "Full name", autoComplete: "name" },
     { name: "email", label: "Work email", type: "email", autoComplete: "email", defaultValue: invite?.email, readOnly: !!invite },
-    ...(!invite ? [{ name: "orgName", label: "Company / workspace name", autoComplete: "organization", placeholder: "Acme Inc." }] : []),
+    ...(!invite ? [
+      { name: "orgName", label: "Company / workspace name", autoComplete: "organization", placeholder: "Acme Inc." },
+      { name: "accessCode", label: "Access code", autoComplete: "off", hint: "Provided by the HireLens team after approval." },
+    ] : []),
     { name: "password", label: "Password", type: "password", autoComplete: "new-password", hint: "At least 10 characters." },
   ];
   return (
