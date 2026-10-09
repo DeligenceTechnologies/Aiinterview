@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import {
   ArrowRight, BarChart3, Bell, Briefcase, Lightbulb, ShoppingBag, CalendarX2, Check, CheckCircle2, Clock, ExternalLink, FileSearch, FileStack,
   Fingerprint, Globe, KeyRound, Link2, Lock, MessageSquareText, PlayCircle, Scale, ScrollText, ShieldCheck, Sparkles,
-  Timer, UserCheck, Users, Video, X,
+  Timer, UserCheck, Users, Video, X, Calculator, Code2, GraduationCap, Headphones, HeartPulse, Megaphone, Store, Truck, Workflow,
 } from "lucide-react";
 import { Copyright, Logo } from "@/components/layout/logo";
 import { InterviewMock, ReportMock, ScreeningMock } from "@/components/marketing/mocks";
@@ -102,6 +102,19 @@ const TEAM_SHOTS = [
   },
 ];
 
+const INDUSTRIES = [
+  { icon: Code2, name: "Technology and IT", roles: "Developers, QA, DevOps, product managers" },
+  { icon: Megaphone, name: "Sales and marketing", roles: "Sales executives, account managers, digital marketers" },
+  { icon: Headphones, name: "Customer support and BPO", roles: "Support agents, team leads, quality analysts" },
+  { icon: Calculator, name: "Finance and accounting", roles: "Accountants, financial analysts, finance operations" },
+  { icon: Workflow, name: "HR and operations", roles: "Recruiters, HR generalists, operations managers" },
+  { icon: HeartPulse, name: "Healthcare administration", roles: "Patient coordinators, front office, medical admin" },
+  { icon: Store, name: "Retail and hospitality", roles: "Store managers, supervisors, guest relations" },
+  { icon: Truck, name: "Logistics and supply chain", roles: "Coordinators, planners, warehouse supervisors" },
+  { icon: GraduationCap, name: "Education and training", roles: "Teachers, trainers, counsellors" },
+  { icon: Briefcase, name: "Consulting and services", roles: "Consultants, project managers, analysts" },
+];
+
 const ABOUT_POINTS = [
   { icon: Clock, text: "Faster first rounds, with no scheduling" },
   { icon: ShieldCheck, text: "Privacy, consent and fairness built in" },
@@ -113,6 +126,7 @@ const FAQ = [
   ["Can the AI reject candidates?", "No. DeliberateHire AI never makes hire or reject decisions. Application tags and interview assessments are summaries of evidence that help your team prioritise. Every decision stays with people."],
   ["How does the AI decide what to ask?", "Each interview follows your template: sections, timing, number of questions and follow-up limits. Within that structure the AI personalizes questions from the job and the candidate's resume, and asks a follow-up only when an answer leaves a specific gap."],
   ["How do I know the assessments are right?", "You don't have to take them on trust. Every assessment comes with evidence: click it and the recording jumps to that moment, with the transcript highlighted."],
+  ["Does it work for my industry?", "Yes, for any role where a structured conversation shows fit: technology, sales, support, finance, operations, healthcare administration, education and more. Questions come from your job description and each candidate's resume, and templates let you set the sections and criteria for each role. Interviews are currently in English, and they assess what candidates say, so hands-on skills such as live coding or practical trade work still need their own test."],
   ["How long is an interview?", "You decide in the template. Typical setups range from a 15-minute screen to a 45-minute structured technical interview."],
   ["What happens if a candidate's connection drops?", "Progress is saved continuously. The candidate reopens their link and continues where they left off, and the recording is kept in parts."],
   ["Where is our data stored, and who can see it?", "Data is stored privately, isolated per company, and access is controlled by roles. For example, interviewers and viewers can't see candidate contact details or resumes. Retention settings let you remove old recordings automatically."],
@@ -276,6 +290,25 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Industries */}
+      <section id="industries" className="scroll-mt-20 bg-white py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHead center eyebrow="Industries" title="One platform for every role you hire for" intro="Each interview is built from your job description and the candidate's resume, so it adapts to the role, not a fixed question bank." />
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {INDUSTRIES.map(({ icon: Icon, name, roles }) => (
+              <div key={name} className="rounded-2xl border border-[#E3EAF5] bg-[#F8FAFD] p-5">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-[#E6EFFC]"><Icon className="size-5 text-[#0B5BD3]" /></div>
+                <p className="mt-4 font-semibold text-[#0F1F3A]">{name}</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#5A6A86]">{roles}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-10 max-w-2xl text-center text-[15px] leading-relaxed text-[#4A5874]">
+            Templates set the sections, timing and evaluation criteria for each role, so a sales screen and an accounting interview each feel right for the job.
+          </p>
+        </div>
+      </section>
+
       {/* Why: before vs after */}
       <section id="why" className="scroll-mt-20 py-24">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -409,6 +442,7 @@ export default function Home() {
             <ul className="mt-4 space-y-2.5 text-sm text-[#5A6A86]">
               <li><a href="#how-it-works" className="hover:text-[#0B5BD3]">How it works</a></li>
               <li><a href="#features" className="hover:text-[#0B5BD3]">Features</a></li>
+              <li><a href="#industries" className="hover:text-[#0B5BD3]">Industries</a></li>
               <li><a href="#trust" className="hover:text-[#0B5BD3]">Trust and security</a></li>
               <li><a href="#faq" className="hover:text-[#0B5BD3]">FAQ</a></li>
             </ul>
