@@ -13,6 +13,7 @@ export type AuditAction =
   | "interview.followup_generated" | "interview.section_completed" | "interview.completed"
   | "interview.evaluation_generated" | "interview.report_generated" | "interview.report_viewed"
   | "interview.evidence_viewed" | "interview.recording_accessed" | "interview.data_deleted"
+  | "interview.feedback_submitted" | "interview.issue_reported"
   | "settings.updated" | "privacy.retention_run";
 
 /** Write an audit entry inside the caller's transaction. Never throws. */

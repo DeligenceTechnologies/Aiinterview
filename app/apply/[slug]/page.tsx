@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Briefcase, Clock, MapPin } from "lucide-react";
 import { ApplyForm } from "@/components/apply/apply-form";
-import { Copyright, PoweredBy } from "@/components/layout/logo";
+import { Copyright, Logo } from "@/components/layout/logo";
 import { employmentTypeLabel } from "@/lib/format";
 import { getPublicJob } from "@/lib/services/applications";
 
@@ -27,9 +27,12 @@ export default async function ApplyPage(props: PageProps<"/apply/[slug]">) {
   return (
     <div className="min-h-screen">
       <header className="border-b bg-card">
-        <div className="mx-auto max-w-5xl px-6 py-5">
-          <p className="text-sm font-semibold">{job.company_name}</p>
-          <p className="text-xs text-muted-foreground">Careers</p>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{job.company_name}</p>
+            <p className="text-xs text-muted-foreground">Careers</p>
+          </div>
+          <Logo height={22} className="shrink-0" />
         </div>
       </header>
       <main className="mx-auto grid max-w-5xl gap-10 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -61,7 +64,7 @@ export default async function ApplyPage(props: PageProps<"/apply/[slug]">) {
           <ApplyForm slug={slug} company={job.company_name} jobTitle={job.title} />
         </aside>
       </main>
-      <footer className="flex flex-col items-center gap-2 py-8"><PoweredBy height={20} /><Copyright /></footer>
+      <footer className="flex flex-col items-center gap-3 border-t py-8"><Logo variant="full" height={40} /><Copyright /></footer>
     </div>
   );
 }

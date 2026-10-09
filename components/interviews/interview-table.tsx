@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { StatusBadge } from "@/components/common/status-badge";
 import { formatDuration, timeAgo } from "@/lib/format";
 import type { InterviewListRow } from "@/lib/services/interviews";
@@ -30,7 +31,16 @@ export function InterviewTable({ rows, hideJob, hideCandidate }: { rows: Intervi
                   {hideCandidate ? <Link href={`/interviews/${r.id}`} className="font-medium after:absolute after:inset-0 group-hover:text-primary">{r.job_title}</Link> : r.job_title}
                 </td>
               )}
-              <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+              <td className="px-4 py-3">
+                <span className="flex items-center gap-2">
+                  <StatusBadge status={r.status} />
+                  {r.issue_count > 0 && (
+                    <span title={`Candidate reported ${r.issue_count === 1 ? "an issue" : `${r.issue_count} issues`}`} className="inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+                      <AlertTriangle className="size-3.5" /> Issue
+                    </span>
+                  )}
+                </span>
+              </td>
               <td className="px-4 py-3 tabular text-muted-foreground">{formatDuration(r.duration_seconds)}</td>
               <td className="px-4 py-3 text-right text-muted-foreground">{timeAgo(r.completed_at ?? r.started_at ?? r.invited_at ?? r.created_at)}</td>
             </tr>

@@ -10,7 +10,7 @@ export function SignupForm({ invite }: { invite: { token: string; email: string;
     { name: "email", label: "Work email", type: "email", autoComplete: "email", defaultValue: invite?.email, readOnly: !!invite },
     ...(!invite ? [
       { name: "orgName", label: "Company / workspace name", autoComplete: "organization", placeholder: "Acme Inc." },
-      { name: "accessCode", label: "Access code", autoComplete: "off", hint: "Provided by the HireLens team after approval." },
+      { name: "accessCode", label: "Access code", autoComplete: "off", hint: "Provided by the DeliberateHire AI team after approval." },
     ] : []),
     { name: "password", label: "Password", type: "password", autoComplete: "new-password", hint: "At least 10 characters." },
   ];

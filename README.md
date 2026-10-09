@@ -1,4 +1,4 @@
-# HireLens — AI Interviewer Platform
+# DeliberateHire AI — AI Interviewer Platform
 
 _Powered by Deligence Technologies._
 

@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { CandidateFeedback } from "@/components/interview/candidate-feedback";
 import { CandidateError, CandidateShell } from "@/components/interview/candidate-shell";
 import { loadPublicInterview } from "@/lib/interview/public-page";
 
@@ -14,6 +15,7 @@ export default async function CompletedPage(props: PageProps<"/interview/[token]
         <p className="mt-3 text-muted-foreground">Your interview for the {data.job_title} role is complete and has been sent to the {data.company_name} hiring team. They&apos;ll review it and be in touch about next steps.</p>
         <p className="mt-6 text-sm text-muted-foreground">You can close this window now.</p>
       </div>
+      <CandidateFeedback token={token} />
     </CandidateShell>
   );
 }

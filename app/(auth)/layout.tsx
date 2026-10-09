@@ -1,16 +1,15 @@
 import Link from "next/link";
-import { Copyright, Logo, PoweredBy } from "@/components/layout/logo";
+import { Copyright, Logo } from "@/components/layout/logo";
 
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col px-6 py-8 sm:px-12">
-        <Link href="/"><Logo /></Link>
+        <Link href="/" className="self-start"><Logo variant="full" height={48} /></Link>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm">{children}</div>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <PoweredBy height={20} />
           <Copyright />
         </div>
       </div>

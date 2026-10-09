@@ -1,5 +1,5 @@
 import { AlertCircle } from "lucide-react";
-import { Copyright, PoweredBy } from "@/components/layout/logo";
+import { Copyright, Logo } from "@/components/layout/logo";
 
 export function CandidateShell({ company, job, children, step }: { company?: string; job?: string; children: React.ReactNode; step?: number }) {
   return (
@@ -24,7 +24,7 @@ export function CandidateShell({ company, job, children, step }: { company?: str
       </header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">{children}</main>
       <footer className="flex flex-col items-center gap-2 py-6 text-center text-xs text-muted-foreground">
-        <PoweredBy height={20} />
+        <Logo variant="full" height={36} />
         <span>Your responses are reviewed by the hiring team.</span>
         <Copyright />
       </footer>

@@ -13,6 +13,7 @@ type N = { id: string; type: string; payload: Record<string, string>; read_at: s
 const label = (n: N) =>
   n.type === "report.ready" ? `Report ready — ${n.payload.candidate} (${n.payload.job})`
   : n.type === "interview.completed" ? `${n.payload.candidate} completed the ${n.payload.job} interview`
+  : n.type === "interview.issue_reported" ? `${n.payload.candidate} reported an issue with the ${n.payload.job} interview (${n.payload.category})`
   : n.type === "application.received" ? `New application — ${n.payload.candidate} for ${n.payload.job}`
   : n.type;
 

@@ -10,6 +10,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { formatDate, formatDuration } from "@/lib/format";
 import { isUuid } from "@/lib/ids";
 import { getInterviewDetail } from "@/lib/services/interviews";
+import { listInterviewFeedback } from "@/lib/services/feedback";
 import { getSettings } from "@/lib/services/workspace";
 import { recoverIfStale } from "@/lib/interview/processing";
 
@@ -18,7 +19,7 @@ export async function InterviewPage({ params, tab }: { params: Promise<{ intervi
   const auth = await requireAuth("interview:view");
   const { interviewId } = await params;
   if (!isUuid(interviewId)) notFound();
-  const [detail, { settings }] = await Promise.all([getInterviewDetail(auth.orgId, interviewId), getSettings(auth.orgId)]);
+  const [detail, { settings }, feedback] = await Promise.all([getInterviewDetail(auth.orgId, interviewId), getSettings(auth.orgId), listInterviewFeedback(auth.orgId, interviewId)]);
   if (!detail) notFound();
   recoverIfStale(auth.orgId, detail);
   const live = ["in_progress", "completing", "processing"].includes(detail.status)
@@ -38,7 +39,7 @@ export async function InterviewPage({ params, tab }: { params: Promise<{ intervi
         </>}
         actions={<InterviewActions id={detail.id} status={detail.status} canWrite={can(auth.role, "interview:write")} canDelete={can(auth.role, "data:delete")} canRegenerate={can(auth.role, "report:regenerate")} />}
       />
-      <InterviewViewer detail={detail} initialTab={tab} showScores={settings.show_scores} canViewRecording={can(auth.role, "recording:view")} canRegenerate={can(auth.role, "report:regenerate")} canViewCandidates={can(auth.role, "candidate:view")} />
+      <InterviewViewer detail={detail} initialTab={tab} showScores={settings.show_scores} canViewRecording={can(auth.role, "recording:view")} canRegenerate={can(auth.role, "report:regenerate")} canViewCandidates={can(auth.role, "candidate:view")} feedback={feedback} />
     </>
   );
 }

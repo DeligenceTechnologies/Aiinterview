@@ -17,7 +17,7 @@ export default async function SignupPage(props: PageProps<"/signup">) {
     <>
       <h1 className="text-2xl font-semibold tracking-tight">{invite ? `Join ${invite.org_name}` : "Create your workspace"}</h1>
       <p className="mt-1 mb-8 text-sm text-muted-foreground">
-        {invite ? `You've been invited as ${invite.role}.` : "HireLens is available by approval. Enter the access code you received from our team."}
+        {invite ? `You've been invited as ${invite.role}.` : "DeliberateHire AI is available by approval. Enter the access code you received from our team."}
       </p>
       {token && !invite ? (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">This invitation is invalid or has expired. Ask your admin for a new one.</p>

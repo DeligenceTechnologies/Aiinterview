@@ -1,13 +1,28 @@
 import Image from "next/image";
-import logo from "@/public/brand/hirelens-logo.png";
+import logoFull from "@/public/brand/deliberatehire-logo.png";
+import logoCompact from "@/public/brand/deliberatehire-logo-compact.png";
+import logoLight from "@/public/brand/deliberatehire-logo-compact-light.png";
 import powered from "@/public/brand/powered-by-deligence.png";
 
-export const PRODUCT_NAME = "HireLens";
+export const PRODUCT_NAME = "DeliberateHire AI";
 
-export function Logo({ className = "", height = 28 }: { className?: string; height?: number }) {
+/**
+ * `full` is the complete lockup (includes "Powered by Deligence"), so don't pair it with <PoweredBy />.
+ * `compact` is the single-line mark + wordmark for tight spaces like the app sidebar.
+ * `light` is the compact logo in white, for dark backgrounds.
+ */
+export function Logo({
+  className = "",
+  height = 28,
+  variant = "compact",
+}: {
+  className?: string;
+  height?: number;
+  variant?: "full" | "compact" | "light";
+}) {
   return (
     <Image
-      src={logo}
+      src={variant === "full" ? logoFull : variant === "light" ? logoLight : logoCompact}
       alt={PRODUCT_NAME}
       priority
       style={{ height, width: "auto" }}

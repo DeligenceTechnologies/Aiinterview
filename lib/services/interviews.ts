@@ -20,6 +20,7 @@ export type InterviewListRow = {
   started_at: Date | null;
   completed_at: Date | null;
   duration_seconds: number | null;
+  issue_count: number;
   candidate_id: string;
   candidate_name: string;
   candidate_email: string;
@@ -50,7 +51,8 @@ export async function listInterviews(orgId: string, opts: { q?: string; status?:
     const rows = await tx<InterviewListRow[]>`
       select i.id, i.status, i.plan_status, i.created_at, i.invited_at, i.started_at, i.completed_at, i.duration_seconds,
         c.id as candidate_id, c.name as candidate_name, c.email as candidate_email, j.id as job_id, j.title as job_title,
-        r.status::text as report_status
+        r.status::text as report_status,
+        (select count(*)::int from interview_feedback f where f.interview_id = i.id and f.kind = 'issue') as issue_count
       from interviews i join candidates c on c.id = i.candidate_id join jobs j on j.id = i.job_id
       left join interview_reports r on r.interview_id = i.id
       where ${where}

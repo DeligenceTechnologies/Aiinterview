@@ -6,6 +6,7 @@ import { AlertTriangle, Captions, CheckCircle2, CloudUpload, Keyboard, Loader2, 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Logo } from "@/components/layout/logo";
 import { formatClock } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { InterviewRecorder, type UploadStatus } from "./recorder";
@@ -420,6 +421,7 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
         </p>
         {demoMode && stage !== "error" && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">Demo mode: the interviewer uses your browser&apos;s voice and you type answers.</p>}
         <Button size="lg" className="mt-8 h-11 px-8" onClick={begin}>{stage === "error" ? "Try again" : "Start interview"}</Button>
+        <Logo height={20} className="mt-12 opacity-80" />
       </div>
     );
   }
@@ -427,6 +429,8 @@ export function InterviewSession({ token, company, job, interviewerName, demoMod
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
       <header className="flex items-center gap-4 border-b border-white/10 px-5 py-3">
+        <Logo variant="light" height={18} className="hidden shrink-0 md:block" />
+        <span className="hidden h-6 w-px bg-white/15 md:block" aria-hidden />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{company}</p>
           <p className="truncate text-xs text-zinc-400">{job}</p>

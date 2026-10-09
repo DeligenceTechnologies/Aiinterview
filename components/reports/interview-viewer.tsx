@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, CircleDashed, Info, Loader2, PlayCircle, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleDashed, Info, Loader2, MessageSquareHeart, PlayCircle, RefreshCw, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AssessmentBadge, StatusBadge } from "@/components/common/status-badge";
 import { TranscriptViewer, type Segment } from "@/components/transcript/transcript-viewer";
@@ -11,6 +11,8 @@ import { api } from "@/lib/client/api";
 import { formatClock, formatDate, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { InterviewDetail } from "@/lib/services/interviews";
+import type { InterviewFeedbackRow } from "@/lib/services/feedback";
+import { ISSUE_CATEGORIES } from "@/lib/feedback";
 import type { StoredReport } from "@/lib/interview/processing";
 import type { AnswerAnalysis } from "@/lib/validation/ai-schemas";
 import { InterviewTimeline } from "./interview-timeline";
@@ -45,8 +47,9 @@ function Card({ title, children, className, action }: { title?: React.ReactNode;
   );
 }
 
-export function InterviewViewer({ detail, initialTab, showScores, canViewRecording, canRegenerate, canViewCandidates }: {
+export function InterviewViewer({ detail, initialTab, showScores, canViewRecording, canRegenerate, canViewCandidates, feedback = [] }: {
   detail: Detail;
+  feedback?: InterviewFeedbackRow[];
   initialTab: ViewerTab;
   showScores: boolean;
   canViewRecording: boolean;
@@ -151,7 +154,7 @@ export function InterviewViewer({ detail, initialTab, showScores, canViewRecordi
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
           <div className="min-w-0 space-y-6">
-            {tab === "overview" && <Overview detail={detail} report={report} showScores={showScores} jump={jump} onOpenReport={() => switchTab("report")} canViewCandidates={canViewCandidates} />}
+            {tab === "overview" && <Overview detail={detail} report={report} showScores={showScores} jump={jump} onOpenReport={() => switchTab("report")} canViewCandidates={canViewCandidates} feedback={feedback} />}
             {tab === "report" && <ReportView detail={detail} report={report} showScores={showScores} jump={jump} />}
             {tab === "questions" && <QuestionsView detail={detail} jump={jump} />}
             {tab === "evaluation" && <EvaluationView detail={detail} showScores={showScores} jump={jump} />}
@@ -175,7 +178,7 @@ function Disclaimer({ source }: { source?: string }) {
   );
 }
 
-function Overview({ detail, report, showScores, jump, onOpenReport, canViewCandidates }: { detail: Detail; report: StoredReport | null | undefined; showScores: boolean; jump: (ms: number, id?: string | null) => void; onOpenReport: () => void; canViewCandidates: boolean }) {
+function Overview({ detail, report, showScores, jump, onOpenReport, canViewCandidates, feedback }: { detail: Detail; report: StoredReport | null | undefined; showScores: boolean; jump: (ms: number, id?: string | null) => void; onOpenReport: () => void; canViewCandidates: boolean; feedback: InterviewFeedbackRow[] }) {
   const completedSections = detail.sections.filter((s) => s.status === "completed").length;
   return (
     <>
@@ -188,6 +191,7 @@ function Overview({ detail, report, showScores, jump, onOpenReport, canViewCandi
           <div key={k} className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">{k}</p><p className="mt-1 text-lg font-semibold tabular">{v}</p></div>
         ))}
       </div>
+      {feedback.length > 0 && <CandidateFeedbackCard items={feedback} />}
       {report ? (
         <Card title={<span className="flex items-center gap-2"><Sparkles className="size-4 text-primary" /> Summary</span>} action={<Button size="sm" variant="ghost" onClick={onOpenReport}>Full report</Button>}>
           <p className="text-sm leading-relaxed">{report.final.summary}</p>
@@ -240,6 +244,40 @@ function Overview({ detail, report, showScores, jump, onOpenReport, canViewCandi
         </dl>
       </Card>
     </>
+  );
+}
+
+function CandidateFeedbackCard({ items }: { items: InterviewFeedbackRow[] }) {
+  const issues = items.filter((f) => f.kind === "issue").length;
+  return (
+    <Card
+      className={issues ? "border-amber-300 dark:border-amber-800" : undefined}
+      title={<span className="flex items-center gap-2">
+        {issues ? <AlertTriangle className="size-4 text-amber-600" /> : <MessageSquareHeart className="size-4 text-primary" />}
+        Candidate feedback
+        {issues > 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">{issues} issue{issues > 1 ? "s" : ""} reported</span>}
+      </span>}
+    >
+      <ul className="divide-y">
+        {items.map((f) => (
+          <li key={f.id} className="py-3 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {f.kind === "issue" ? (
+                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="size-3.5" /> Issue: {ISSUE_CATEGORIES[f.category as keyof typeof ISSUE_CATEGORIES] ?? f.category}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5" aria-label={`${f.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={cn("size-4", n <= (f.rating ?? 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />)}
+                </span>
+              )}
+              <span className="ml-auto text-xs text-muted-foreground">{formatDate(f.created_at, true)}</span>
+            </div>
+            {f.message ? <p className="mt-1.5 text-sm whitespace-pre-wrap">{f.message}</p> : f.kind === "feedback" ? <p className="mt-1 text-xs text-muted-foreground">No comment left.</p> : null}
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 

@@ -20,7 +20,7 @@ export const POST = route(async (req) => {
   if (!input.inviteToken) {
     const code = env().SIGNUP_ACCESS_CODE;
     if (!code || !input.accessCode || !safeEqual(input.accessCode.trim(), code)) {
-      throw new ApiError(403, "HireLens is available by approval. Book a demo or request access to get an access code.");
+      throw new ApiError(403, "DeliberateHire AI is available by approval. Book a demo or request access to get an access code.");
     }
   }
   const { userId, orgId } = await signup(input);

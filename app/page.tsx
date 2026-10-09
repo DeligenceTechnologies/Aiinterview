@@ -4,7 +4,7 @@ import {
   Fingerprint, Globe, KeyRound, Link2, Lock, MessageSquareText, PlayCircle, Scale, ScrollText, ShieldCheck, Sparkles,
   Timer, UserCheck, Users, Video, X,
 } from "lucide-react";
-import { Copyright, Logo, PoweredBy } from "@/components/layout/logo";
+import { Copyright, Logo } from "@/components/layout/logo";
 import { InterviewMock, ReportMock, ScreeningMock } from "@/components/marketing/mocks";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { AccessRequestForm } from "@/components/marketing/access-request-form";
@@ -12,11 +12,11 @@ import Image from "next/image";
 import { DEMO_URL, UPWORK_URL } from "@/lib/marketing";
 
 export const metadata: Metadata = {
-  title: { absolute: "HireLens · AI video interviews with evidence you can verify" },
+  title: { absolute: "DeliberateHire AI · AI video interviews with evidence you can verify" },
   description:
-    "HireLens runs personalized AI video interviews for every candidate and gives recruiters reports where every assessment links to the exact moment in the transcript and recording.",
+    "DeliberateHire AI runs personalized AI video interviews for every candidate and gives recruiters reports where every assessment links to the exact moment in the transcript and recording.",
   openGraph: {
-    title: "HireLens · AI video interviews with evidence you can verify",
+    title: "DeliberateHire AI · AI video interviews with evidence you can verify",
     description: "Interview every candidate. Review only the evidence. Powered by Deligence Technologies.",
     type: "website",
   },
@@ -67,7 +67,7 @@ const MORE = [
 ];
 
 const TRUST = [
-  { icon: UserCheck, title: "Humans decide", body: "No AI output ever makes a hire or reject decision. HireLens prepares the evidence; your team decides." },
+  { icon: UserCheck, title: "Humans decide", body: "No AI output ever makes a hire or reject decision. DeliberateHire AI prepares the evidence; your team decides." },
   { icon: Scale, title: "Fair by design", body: "Only job-relevant evidence is assessed. No inference from age, gender, accent, appearance or emotion." },
   { icon: Fingerprint, title: "Consent first", body: "Candidates see a plain-language notice and give recorded, timestamped consent before anything starts." },
   { icon: Lock, title: "Company data isolated", body: "Each company's data is separated at the database level, with server-side checks on every request." },
@@ -79,7 +79,7 @@ const TEAM_SHOTS = [
   {
     icon: Briefcase,
     title: "Create a job in minutes",
-    body: "Paste the job description and pick an interview template. HireLens extracts the requirements and is ready to screen and interview.",
+    body: "Paste the job description and pick an interview template. DeliberateHire AI extracts the requirements and is ready to screen and interview.",
     points: ["Required and preferred skills extracted automatically", "Choose a template: sections, timing and follow-up limits", "Turn on a public apply link with one switch"],
     src: "/marketing/job.png",
     alt: "Job page showing parsed requirements, applications and interviews",
@@ -110,7 +110,7 @@ const ABOUT_POINTS = [
 
 const FAQ = [
   ["Do candidates need to install anything?", "No. Candidates open a secure personal link in a modern browser, give consent, run a quick camera and microphone check, and start. They can also type an answer instead of speaking."],
-  ["Can the AI reject candidates?", "No. HireLens never makes hire or reject decisions. Application tags and interview assessments are summaries of evidence that help your team prioritise. Every decision stays with people."],
+  ["Can the AI reject candidates?", "No. DeliberateHire AI never makes hire or reject decisions. Application tags and interview assessments are summaries of evidence that help your team prioritise. Every decision stays with people."],
   ["How does the AI decide what to ask?", "Each interview follows your template: sections, timing, number of questions and follow-up limits. Within that structure the AI personalizes questions from the job and the candidate's resume, and asks a follow-up only when an answer leaves a specific gap."],
   ["How do I know the assessments are right?", "You don't have to take them on trust. Every assessment comes with evidence: click it and the recording jumps to that moment, with the transcript highlighted."],
   ["How long is an interview?", "You decide in the template. Typical setups range from a 15-minute screen to a 45-minute structured technical interview."],
@@ -136,7 +136,7 @@ export default function Home() {
               Interview every candidate. <span className="text-[#0B5BD3]">Review only the evidence.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-[#4A5874] sm:text-xl">
-              HireLens runs personalized AI video interviews for every candidate and gives your team reports where every assessment links to the exact moment in the transcript and recording.
+              DeliberateHire AI runs personalized AI video interviews for every candidate and gives your team reports where every assessment links to the exact moment in the transcript and recording.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className={BLUE_BTN}>Book a demo <ArrowRight className="size-4" /></a>
@@ -170,7 +170,7 @@ export default function Home() {
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-20 py-24">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <SectionHead center eyebrow="How it works" title="From job post to decision, in six steps" intro="Your team sets up the role and reviews the evidence. HireLens handles everything in between." />
+          <SectionHead center eyebrow="How it works" title="From job post to decision, in six steps" intro="Your team sets up the role and reviews the evidence. DeliberateHire AI handles everything in between." />
           <ol className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {STEPS.map(({ icon: Icon, title, body }, i) => (
               <li key={title} className="relative rounded-2xl border border-[#DCE4F0] bg-white p-6">
@@ -269,7 +269,7 @@ export default function Home() {
                 <div className="overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white shadow-[0_24px_60px_-20px_rgba(11,30,61,0.25)]">
                   <Image src={shot.src} alt={shot.alt} width={1600} height={1000} className="h-auto w-full" />
                 </div>
-                <p className="mt-3 text-center text-xs text-[#7A8AA6]">Screenshot of the HireLens app with sample data</p>
+                <p className="mt-3 text-center text-xs text-[#7A8AA6]">Screenshot of the DeliberateHire AI app with sample data</p>
               </div>
             </div>
           ))}
@@ -279,12 +279,12 @@ export default function Home() {
       {/* Why: before vs after */}
       <section id="why" className="scroll-mt-20 py-24">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <SectionHead center eyebrow="Why HireLens" title="First-round interviews, without the first-round grind" />
+          <SectionHead center eyebrow="Why DeliberateHire AI" title="First-round interviews, without the first-round grind" />
           <div className="mt-12 overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white">
             <div className="hidden grid-cols-[180px_1fr_1fr] border-b border-[#E3EAF5] bg-[#F3F7FC] text-sm font-semibold md:grid">
               <p className="px-6 py-4 text-[#5A6A86]" />
               <p className="flex items-center gap-2 px-6 py-4 text-[#5A6A86]"><CalendarX2 className="size-4" /> Traditional phone screens</p>
-              <p className="flex items-center gap-2 px-6 py-4 text-[#0B5BD3]"><Sparkles className="size-4" /> With HireLens</p>
+              <p className="flex items-center gap-2 px-6 py-4 text-[#0B5BD3]"><Sparkles className="size-4" /> With DeliberateHire AI</p>
             </div>
             {COMPARE.map(([k, a, b]) => (
               <div key={k} className="grid border-b border-[#EEF2F8] last:border-0 md:grid-cols-[180px_1fr_1fr]">
@@ -320,18 +320,17 @@ export default function Home() {
           <div>
             <SectionHead eyebrow="About us" title="Built by Deligence Technologies" />
             <div className="mt-6 space-y-4 text-lg leading-relaxed text-[#4A5874]">
-              <p>We&apos;re a technology company focused on practical AI. We built HireLens because first-round interviews take the most recruiter time and give the least reliable signal: rushed calls, inconsistent questions and notes written from memory.</p>
-              <p>HireLens makes that first conversation consistent, personalized and verifiable, so your team spends its time on the candidates and decisions that matter.</p>
+              <p>We&apos;re a technology company focused on practical AI. We built DeliberateHire AI because first-round interviews take the most recruiter time and give the least reliable signal: rushed calls, inconsistent questions and notes written from memory.</p>
+              <p>DeliberateHire AI makes that first conversation consistent, personalized and verifiable, so your team spends its time on the candidates and decisions that matter.</p>
             </div>
           </div>
           <div className="rounded-2xl border border-[#DCE4F0] bg-white p-8">
-            <Logo height={44} />
+            <Logo variant="full" height={64} />
             <ul className="mt-6 space-y-3 text-sm text-[#3D4D6A]">
               {ABOUT_POINTS.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3"><Icon className="size-5 text-[#0B5BD3]" />{text}</li>
               ))}
             </ul>
-            <div className="mt-8 border-t border-[#E3EAF5] pt-6"><PoweredBy height={22} /></div>
           </div>
         </div>
       </section>
@@ -360,7 +359,7 @@ export default function Home() {
           <div className="grid items-center gap-10 rounded-3xl border border-[#DCE4F0] bg-[#F8FAFD] p-8 sm:p-12 lg:grid-cols-[1.3fr_1fr]">
             <div>
               <Eyebrow>Available on Upwork</Eyebrow>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-[2.4rem] sm:leading-[1.15]">Get your own HireLens, customized for your team</h2>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-[2.4rem] sm:leading-[1.15]">Get your own DeliberateHire AI, customized for your team</h2>
               <p className="mt-4 text-lg leading-relaxed text-[#4A5874]">You will get an AI-powered video interviewing and candidate evaluation platform, set up and tailored to your hiring process, and bought securely through Upwork.</p>
               <ul className="mt-6 grid gap-3 text-base text-[#3D4D6A] sm:grid-cols-2">
                 {["AI video interviews and reports", "Public apply link with AI screening", "Your branding and interview templates", "Set up and customized for you"].map((t) => (
@@ -384,7 +383,7 @@ export default function Home() {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(30rem_16rem_at_80%_0%,rgba(125,184,255,0.35),transparent)]" />
             <div className="relative flex h-full flex-col">
               <Eyebrow dark>Contact us</Eyebrow>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance text-white sm:text-[2.6rem] sm:leading-[1.15]">See HireLens on your next open role</h2>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance text-white sm:text-[2.6rem] sm:leading-[1.15]">See DeliberateHire AI on your next open role</h2>
               <p className="mt-5 text-lg leading-relaxed text-[#D6E6FF]">Book a 20-minute demo. We&apos;ll show the full flow, from apply link to evidence-backed report, and talk through pricing for your hiring volume.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-[#0B4FB8] hover:bg-[#EAF2FF]">Book a demo <ArrowRight className="size-4" /></a>
@@ -402,9 +401,8 @@ export default function Home() {
       <footer className="border-t border-[#E3EAF5] bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="space-y-4">
-            <Logo height={32} />
+            <Logo variant="full" height={52} />
             <p className="max-w-sm text-sm leading-relaxed text-[#5A6A86]">AI video interviews with evidence you can verify. Interview every candidate; review only the evidence.</p>
-            <PoweredBy height={20} />
           </div>
           <div>
             <p className="text-sm font-semibold">Product</p>
